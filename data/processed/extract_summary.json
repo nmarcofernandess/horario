@@ -1,0 +1,290 @@
+{
+  "generated_at": "2026-02-11T19:26:30",
+  "inputs": {
+    "xlsx_main": "data/raw/Horario de trabalho padrao NOVO -2026 - REVISAO DE ESCALA.xlsx",
+    "xlsx_dom_folgas": "data/raw/DOM E FOLGAS - CAIXA.xlsx",
+    "pdf_shift": "data/raw/escala caixa - rita 1.pdf",
+    "pdf_sunday": "data/raw/escala caixa - rita.pdf",
+    "prd_spec": "docs/PRD_SPEC_Escala_Caixa_Secullum.md"
+  },
+  "xlsx_main_export": {
+    "workbook": "data/raw/Horario de trabalho padrao NOVO -2026 - REVISAO DE ESCALA.xlsx",
+    "export_dir": "data/processed/excel_raw/horario_de_trabalho_padrao_novo_2026_revisao_de_escala",
+    "sheet_count": 21,
+    "sheets": [
+      {
+        "sheet_name": "PARÂMETROS",
+        "sheet_slug": "parametros",
+        "rows": 71,
+        "cols": 34,
+        "merged_ranges": 0,
+        "non_empty_cells": 708,
+        "csv_path": "data/processed/excel_raw/horario_de_trabalho_padrao_novo_2026_revisao_de_escala/parametros.csv"
+      },
+      {
+        "sheet_name": "CAIXAS -2026- ESC",
+        "sheet_slug": "caixas_2026_esc",
+        "rows": 605,
+        "cols": 69,
+        "merged_ranges": 28,
+        "non_empty_cells": 9669,
+        "csv_path": "data/processed/excel_raw/horario_de_trabalho_padrao_novo_2026_revisao_de_escala/caixas_2026_esc.csv"
+      },
+      {
+        "sheet_name": "PAD ATENDIMENTO -2026- ESC",
+        "sheet_slug": "pad_atendimento_2026_esc",
+        "rows": 232,
+        "cols": 48,
+        "merged_ranges": 23,
+        "non_empty_cells": 3632,
+        "csv_path": "data/processed/excel_raw/horario_de_trabalho_padrao_novo_2026_revisao_de_escala/pad_atendimento_2026_esc.csv"
+      },
+      {
+        "sheet_name": "REPOSIÇÃO-2025",
+        "sheet_slug": "reposicao_2025",
+        "rows": 543,
+        "cols": 50,
+        "merged_ranges": 23,
+        "non_empty_cells": 2269,
+        "csv_path": "data/processed/excel_raw/horario_de_trabalho_padrao_novo_2026_revisao_de_escala/reposicao_2025.csv"
+      },
+      {
+        "sheet_name": "AÇOUGUE-2025",
+        "sheet_slug": "acougue_2025",
+        "rows": 618,
+        "cols": 49,
+        "merged_ranges": 36,
+        "non_empty_cells": 7984,
+        "csv_path": "data/processed/excel_raw/horario_de_trabalho_padrao_novo_2026_revisao_de_escala/acougue_2025.csv"
+      },
+      {
+        "sheet_name": "ENTREGA",
+        "sheet_slug": "entrega",
+        "rows": 37,
+        "cols": 38,
+        "merged_ranges": 4,
+        "non_empty_cells": 344,
+        "csv_path": "data/processed/excel_raw/horario_de_trabalho_padrao_novo_2026_revisao_de_escala/entrega.csv"
+      },
+      {
+        "sheet_name": "LIMPEZA",
+        "sheet_slug": "limpeza",
+        "rows": 94,
+        "cols": 39,
+        "merged_ranges": 12,
+        "non_empty_cells": 1494,
+        "csv_path": "data/processed/excel_raw/horario_de_trabalho_padrao_novo_2026_revisao_de_escala/limpeza.csv"
+      },
+      {
+        "sheet_name": "LOJA",
+        "sheet_slug": "loja",
+        "rows": 378,
+        "cols": 44,
+        "merged_ranges": 23,
+        "non_empty_cells": 5369,
+        "csv_path": "data/processed/excel_raw/horario_de_trabalho_padrao_novo_2026_revisao_de_escala/loja.csv"
+      },
+      {
+        "sheet_name": "POTISSERIA ",
+        "sheet_slug": "potisseria",
+        "rows": 170,
+        "cols": 76,
+        "merged_ranges": 20,
+        "non_empty_cells": 2288,
+        "csv_path": "data/processed/excel_raw/horario_de_trabalho_padrao_novo_2026_revisao_de_escala/potisseria.csv"
+      },
+      {
+        "sheet_name": "PADARIA",
+        "sheet_slug": "padaria",
+        "rows": 535,
+        "cols": 76,
+        "merged_ranges": 45,
+        "non_empty_cells": 8035,
+        "csv_path": "data/processed/excel_raw/horario_de_trabalho_padrao_novo_2026_revisao_de_escala/padaria.csv"
+      },
+      {
+        "sheet_name": "DEPÓSITO",
+        "sheet_slug": "deposito",
+        "rows": 32,
+        "cols": 36,
+        "merged_ranges": 2,
+        "non_empty_cells": 433,
+        "csv_path": "data/processed/excel_raw/horario_de_trabalho_padrao_novo_2026_revisao_de_escala/deposito.csv"
+      },
+      {
+        "sheet_name": "ESCRITÓRIO",
+        "sheet_slug": "escritorio",
+        "rows": 134,
+        "cols": 36,
+        "merged_ranges": 8,
+        "non_empty_cells": 1753,
+        "csv_path": "data/processed/excel_raw/horario_de_trabalho_padrao_novo_2026_revisao_de_escala/escritorio.csv"
+      },
+      {
+        "sheet_name": "CARGOS",
+        "sheet_slug": "cargos",
+        "rows": 70,
+        "cols": 33,
+        "merged_ranges": 0,
+        "non_empty_cells": 194,
+        "csv_path": "data/processed/excel_raw/horario_de_trabalho_padrao_novo_2026_revisao_de_escala/cargos.csv"
+      },
+      {
+        "sheet_name": "Setores",
+        "sheet_slug": "setores",
+        "rows": 54,
+        "cols": 33,
+        "merged_ranges": 22,
+        "non_empty_cells": 155,
+        "csv_path": "data/processed/excel_raw/horario_de_trabalho_padrao_novo_2026_revisao_de_escala/setores.csv"
+      },
+      {
+        "sheet_name": "Depart e Necess",
+        "sheet_slug": "depart_e_necess",
+        "rows": 160,
+        "cols": 34,
+        "merged_ranges": 20,
+        "non_empty_cells": 2005,
+        "csv_path": "data/processed/excel_raw/horario_de_trabalho_padrao_novo_2026_revisao_de_escala/depart_e_necess.csv"
+      },
+      {
+        "sheet_name": "LOJA SEM DOMINGO",
+        "sheet_slug": "loja_sem_domingo",
+        "rows": 121,
+        "cols": 44,
+        "merged_ranges": 8,
+        "non_empty_cells": 1563,
+        "csv_path": "data/processed/excel_raw/horario_de_trabalho_padrao_novo_2026_revisao_de_escala/loja_sem_domingo.csv"
+      },
+      {
+        "sheet_name": "ORIGINAL -estagiarios ",
+        "sheet_slug": "original_estagiarios",
+        "rows": 874,
+        "cols": 76,
+        "merged_ranges": 38,
+        "non_empty_cells": 9081,
+        "csv_path": "data/processed/excel_raw/horario_de_trabalho_padrao_novo_2026_revisao_de_escala/original_estagiarios.csv"
+      },
+      {
+        "sheet_name": "ORIGINAL",
+        "sheet_slug": "original",
+        "rows": 874,
+        "cols": 76,
+        "merged_ranges": 38,
+        "non_empty_cells": 9128,
+        "csv_path": "data/processed/excel_raw/horario_de_trabalho_padrao_novo_2026_revisao_de_escala/original.csv"
+      },
+      {
+        "sheet_name": "RESUMO DEP",
+        "sheet_slug": "resumo_dep",
+        "rows": 46,
+        "cols": 34,
+        "merged_ranges": 6,
+        "non_empty_cells": 70,
+        "csv_path": "data/processed/excel_raw/horario_de_trabalho_padrao_novo_2026_revisao_de_escala/resumo_dep.csv"
+      },
+      {
+        "sheet_name": "RESUMO FUNC",
+        "sheet_slug": "resumo_func",
+        "rows": 40,
+        "cols": 3,
+        "merged_ranges": 0,
+        "non_empty_cells": 40,
+        "csv_path": "data/processed/excel_raw/horario_de_trabalho_padrao_novo_2026_revisao_de_escala/resumo_func.csv"
+      },
+      {
+        "sheet_name": "Planilha1",
+        "sheet_slug": "planilha1",
+        "rows": 56,
+        "cols": 84,
+        "merged_ranges": 27,
+        "non_empty_cells": 994,
+        "csv_path": "data/processed/excel_raw/horario_de_trabalho_padrao_novo_2026_revisao_de_escala/planilha1.csv"
+      }
+    ]
+  },
+  "xlsx_dom_folgas_export": {
+    "workbook": "data/raw/DOM E FOLGAS - CAIXA.xlsx",
+    "export_dir": "data/processed/excel_raw/dom_e_folgas_caixa",
+    "sheet_count": 1,
+    "sheets": [
+      {
+        "sheet_name": "Planilha1",
+        "sheet_slug": "planilha1",
+        "rows": 24,
+        "cols": 65,
+        "merged_ranges": 1,
+        "non_empty_cells": 389,
+        "csv_path": "data/processed/excel_raw/dom_e_folgas_caixa/planilha1.csv"
+      }
+    ]
+  },
+  "dom_folgas": {
+    "matrix_path": "data/processed/dom_folgas_matrix.csv",
+    "markers_path": "data/processed/dom_folgas_markers.csv",
+    "header_blocks": 2,
+    "matrix_rows": 726,
+    "marker_rows": 100,
+    "employees": [
+      "ALICE",
+      "ANA JULIA",
+      "CLEONICE",
+      "GABRIEL",
+      "HELOISA",
+      "MAYUMI"
+    ]
+  },
+  "pdf_shift": {
+    "raw_path": "data/processed/pdf_rita1_table_raw.csv",
+    "slots_path": "data/processed/pdf_rita1_slots.csv",
+    "totals_path": "data/processed/pdf_rita1_totals.csv",
+    "catalog_path": "data/processed/pdf_rita1_shift_catalog_by_day.csv",
+    "catalog_summary_path": "data/processed/pdf_rita1_shift_catalog_summary.csv",
+    "slots_rows": 428,
+    "totals_rows": 37,
+    "shift_codes": [
+      "CAI1",
+      "CAI2",
+      "CAI3",
+      "CAI4",
+      "CAI5",
+      "CAI6"
+    ]
+  },
+  "pdf_sunday": {
+    "rotation_path": "data/processed/pdf_rita_sunday_rotation.csv",
+    "summary_path": "data/processed/pdf_rita_sunday_rotation_summary.csv",
+    "rows": 72,
+    "sundays": 24,
+    "employees": [
+      "ALICE",
+      "ANA JULIA",
+      "CLEONICE",
+      "GABRIEL",
+      "HELOISA",
+      "MAYUMI"
+    ]
+  },
+  "xlsx_sunday": {
+    "rotation_path": "data/processed/xlsx_caixas_sunday_rotation.csv",
+    "rows": 72,
+    "header_blocks": 3,
+    "employees": [
+      "ALICE",
+      "ANA JULIA",
+      "CLEONICE",
+      "GABRIEL",
+      "HELOISA",
+      "MAYUMI"
+    ]
+  },
+  "sunday_compare": {
+    "pdf_records": 72,
+    "xlsx_records": 72,
+    "matches": 72,
+    "only_pdf": [],
+    "only_xlsx": [],
+    "path": "data/processed/sunday_rotation_source_compare.json"
+  },
+  "logic_report": "docs/LOGICA_EXTRAIDA_ESTRUTURA.md"
+}

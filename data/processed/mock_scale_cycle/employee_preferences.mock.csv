@@ -1,0 +1,7 @@
+request_id,employee_id,request_date,request_type,target_shift_code,priority,note,employee_rank
+REQ-003,ALI,2026-02-11,FOLGA_ON_DATE,,HIGH,Consulta medica,4
+REQ-001,GAB,2026-02-15,AVOID_SUNDAY_DATE,,HIGH,Evento familiar no domingo,3
+REQ-002,HEL,2026-02-17,SHIFT_CHANGE_ON_DATE,CAI5,MEDIUM,Preferencia por turno CAI5,6
+REQ-004,MAY,2026-02-24,SHIFT_CHANGE_ON_DATE,CAI6,LOW,Troca de turno,5
+REQ-005,CLE,2026-02-27,FOLGA_ON_DATE,,HIGH,Compromisso pessoal,1
+REQ-006,ANJ,2026-03-03,SHIFT_CHANGE_ON_DATE,CAI2,MEDIUM,Preferencia por ajuste pontual,2

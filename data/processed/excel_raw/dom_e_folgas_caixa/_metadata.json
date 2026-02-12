@@ -1,0 +1,16 @@
+{
+  "workbook": "data/raw/DOM E FOLGAS - CAIXA.xlsx",
+  "export_dir": "data/processed/excel_raw/dom_e_folgas_caixa",
+  "sheet_count": 1,
+  "sheets": [
+    {
+      "sheet_name": "Planilha1",
+      "sheet_slug": "planilha1",
+      "rows": 24,
+      "cols": 65,
+      "merged_ranges": 1,
+      "non_empty_cells": 389,
+      "csv_path": "data/processed/excel_raw/dom_e_folgas_caixa/planilha1.csv"
+    }
+  ]
+}

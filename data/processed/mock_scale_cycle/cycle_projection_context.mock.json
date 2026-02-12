@@ -1,0 +1,8 @@
+{
+  "period_start": "2026-02-08",
+  "period_end": "2026-03-31",
+  "anchor_scale_id": 1,
+  "cycle_length_days": 56,
+  "scale_count": 8,
+  "model": "SCALE_CYCLE_PRIMARY"
+}

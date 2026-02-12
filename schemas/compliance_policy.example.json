@@ -1,0 +1,313 @@
+{
+  "policy_id": "CAIXA_BR_PR_MARINGA_2026H1",
+  "policy_version": "v1.0.0",
+  "sector_id": "CAIXA",
+  "description": "Politica inicial para validacao de escala de caixa com domingo curto e compensacao.",
+  "jurisdiction": {
+    "country_code": "BR",
+    "state_code": "PR",
+    "city_name": "Maringa",
+    "sector": "Comercio varejista",
+    "cnae": "4711-3/02",
+    "collective_agreement_id": "CCT_CAIXA_2026_PLACEHOLDER"
+  },
+  "validity": {
+    "effective_from": "2026-02-01",
+    "effective_to": "2026-12-31"
+  },
+  "week_definition": "MON_SUN",
+  "input_contract": {
+    "scale_model": "SCALE_CYCLE_PRIMARY",
+    "required_datasets": [
+      "compliance_policy",
+      "employee_registry",
+      "shift_catalog",
+      "scale_cycle_template",
+      "cycle_projection_context",
+      "sunday_rotation",
+      "employee_preferences",
+      "exceptions"
+    ],
+    "ingestion_order": [
+      "compliance_policy",
+      "employee_registry",
+      "shift_catalog",
+      "scale_cycle_template",
+      "cycle_projection_context",
+      "sunday_rotation",
+      "employee_preferences",
+      "exceptions"
+    ],
+    "correlation_keys": {
+      "employee_primary_key": "employee_id",
+      "employee_fallback_keys": [
+        "name_normalized",
+        "employee_alias"
+      ],
+      "cycle_assignment_key": [
+        "scale_id",
+        "employee_id",
+        "cycle_day"
+      ],
+      "day_assignment_key": [
+        "employee_id",
+        "work_date"
+      ],
+      "sunday_link_key": [
+        "employee_id",
+        "sunday_date"
+      ],
+      "preference_request_key": [
+        "employee_id",
+        "request_date",
+        "request_type"
+      ],
+      "reject_ambiguous_name_match": true
+    }
+  },
+  "picking_rules": {
+    "strategy": "MANUAL_RANK",
+    "criteria": [
+      {
+        "type": "FIXED_CONSTRAINT",
+        "weight": 1000,
+        "description": "Compromissos inadiaveis (Igreja, Faculdade)"
+      },
+      {
+        "type": "MANUAL_OVERRIDE",
+        "weight": 500,
+        "description": "Ordem manual do RH (Fator Cleonice)"
+      }
+    ]
+  },
+  "contracts": [
+    {
+      "contract_code": "H44_CAIXA",
+      "weekly_minutes": 2640,
+      "employees": [
+        "CLE",
+        "ANJ"
+      ],
+      "allowed_weekday_shift_codes": [
+        "CAI1",
+        "CAI2",
+        "CAI3",
+        "CAI4",
+        "CAI5",
+        "CAI6"
+      ],
+      "sunday_mode": "WORK_WITH_COMPENSATION",
+      "max_sundays_per_4_weeks": 2
+    },
+    {
+      "contract_code": "H36_CAIXA",
+      "weekly_minutes": 2160,
+      "employees": [
+        "GAB"
+      ],
+      "allowed_weekday_shift_codes": [
+        "CAI1",
+        "CAI2",
+        "CAI3",
+        "CAI4",
+        "CAI5",
+        "CAI6"
+      ],
+      "sunday_mode": "WORK_WITH_COMPENSATION",
+      "max_sundays_per_4_weeks": 2
+    },
+    {
+      "contract_code": "H30_CAIXA",
+      "weekly_minutes": 1800,
+      "employees": [
+        "MAY",
+        "HEL",
+        "ALI"
+      ],
+      "allowed_weekday_shift_codes": [
+        "CAI1",
+        "CAI2",
+        "CAI3",
+        "CAI4",
+        "CAI5",
+        "CAI6"
+      ],
+      "sunday_mode": "WORK_WITH_COMPENSATION",
+      "max_sundays_per_4_weeks": 2
+    }
+  ],
+  "shift_catalog": {
+    "weekday_shifts": [
+      {
+        "code": "CAI1",
+        "minutes": 570,
+        "day_scope": "WEEKDAY",
+        "tags": [
+          "weekday",
+          "legacy-cai"
+        ]
+      },
+      {
+        "code": "CAI2",
+        "minutes": 540,
+        "day_scope": "WEEKDAY",
+        "tags": [
+          "weekday",
+          "legacy-cai"
+        ]
+      },
+      {
+        "code": "CAI3",
+        "minutes": 510,
+        "day_scope": "WEEKDAY",
+        "tags": [
+          "weekday",
+          "legacy-cai"
+        ]
+      },
+      {
+        "code": "CAI4",
+        "minutes": 480,
+        "day_scope": "WEEKDAY",
+        "tags": [
+          "weekday",
+          "legacy-cai"
+        ]
+      },
+      {
+        "code": "CAI5",
+        "minutes": 450,
+        "day_scope": "WEEKDAY",
+        "tags": [
+          "weekday",
+          "legacy-cai"
+        ]
+      },
+      {
+        "code": "CAI6",
+        "minutes": 420,
+        "day_scope": "WEEKDAY",
+        "tags": [
+          "weekday",
+          "legacy-cai"
+        ]
+      }
+    ],
+    "sunday_shift": {
+      "code": "DOM_08_12_30",
+      "start_time": "08:00",
+      "end_time": "12:30",
+      "minutes": 270,
+      "day_scope": "SUNDAY",
+      "tags": [
+        "domingo-curto"
+      ]
+    }
+  },
+  "sunday_policy": {
+    "coverage_per_sunday": 3,
+    "assignment_mode": "ROTATION",
+    "locked_assignments": false,
+    "minimum_gap_between_sundays": 1,
+    "fair_distribution": {
+      "max_diff_between_employees": 1
+    }
+  },
+  "compensation_policy": {
+    "strategy": "OFFSET_DAYS_AFTER_SUNDAY",
+    "default_folga_offset_days": 2,
+    "allowed_folga_weekdays": [
+      "MON",
+      "TUE"
+    ],
+    "link_compensation_to_sunday_work": true
+  },
+  "employee_preference_policy": {
+    "enabled": true,
+    "accepted_request_types": [
+      "FOLGA_ON_DATE",
+      "SHIFT_CHANGE_ON_DATE",
+      "AVOID_SUNDAY_DATE"
+    ],
+    "max_approved_requests_per_employee_per_cycle": 2,
+    "max_weekly_delta_after_preference_minutes": 120,
+    "reject_if_breaks_hard_constraints": true,
+    "reject_if_breaks_sunday_coverage": true,
+    "allow_rh_override": true
+  },
+  "constraints": {
+    "max_consecutive_work_days": 6,
+    "min_intershift_rest_minutes": 660,
+    "require_rest_in_any_7_day_window": true,
+    "enforce_weekly_contract_minutes": true,
+    "weekly_minutes_tolerance": 30,
+    "reject_unknown_shift_codes": true,
+    "reject_unknown_dom_folgas_markers": true,
+    "accepted_dom_folgas_markers": [
+      "5",
+      "6"
+    ],
+    "marker_semantics": {
+      "5": "UNKNOWN",
+      "6": "UNKNOWN"
+    }
+  },
+  "legal_references": [
+    {
+      "rule_code": "R1_MAX_6_CONSECUTIVE_DAYS",
+      "hard_constraint": true,
+      "description": "Nao permitir 7 dias consecutivos de trabalho.",
+      "source": {
+        "type": "CLT",
+        "identifier": "CLT Art. 67",
+        "url": "https://www.camara.leg.br/proposicoesWeb/prop_mostrarintegra;jsessionid=node0so4439v1ut7fmx2k7xrdvf06.node0?codteor=2086247&filename=legislacao.html"
+      }
+    },
+    {
+      "rule_code": "R2_MIN_INTERSHIFT_REST",
+      "hard_constraint": true,
+      "description": "Manter intervalo minimo entre jornadas.",
+      "source": {
+        "type": "CLT",
+        "identifier": "CLT Art. 66",
+        "url": "https://www.camara.leg.br/proposicoesWeb/prop_mostrarintegra;jsessionid=node0so4439v1ut7fmx2k7xrdvf06.node0?codteor=2086247&filename=legislacao.html"
+      }
+    },
+    {
+      "rule_code": "R3_SUNDAY_AND_HOLIDAY_GOVERNANCE",
+      "hard_constraint": true,
+      "description": "Domingos/feriados devem obedecer politica vigente e base coletiva aplicavel.",
+      "source": {
+        "type": "LEI",
+        "identifier": "Lei 10.101/2000 Art. 6-A e 6-B",
+        "url": "https://legis.senado.leg.br/norma/551828"
+      }
+    },
+    {
+      "rule_code": "R4_WEEKLY_CONTRACT_TARGET",
+      "hard_constraint": false,
+      "description": "Comparar minutos semanais com contrato conforme corte configurado.",
+      "source": {
+        "type": "INTERNAL_POLICY",
+        "identifier": "PRD Escala Caixa 2026"
+      }
+    }
+  ],
+  "evidence_requirements": {
+    "include_rule_code": true,
+    "include_source_reference": true,
+    "include_datespan": true,
+    "include_employee_identifier": true,
+    "include_suggested_fix": true
+  },
+  "violation_severity": {
+    "hard_default": "CRITICAL",
+    "soft_default": "MEDIUM",
+    "rule_overrides": [
+      {
+        "rule_code": "R4_WEEKLY_CONTRACT_TARGET",
+        "severity": "LOW"
+      }
+    ]
+  }
+}

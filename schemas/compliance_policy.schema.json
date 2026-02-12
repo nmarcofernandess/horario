@@ -1,0 +1,788 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://horario.local/schemas/compliance_policy.schema.json",
+  "title": "Escala Caixa Compliance Policy",
+  "description": "Policy-as-code contract for schedule compliance validation and recommendation engine.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "policy_id",
+    "policy_version",
+    "sector_id",
+    "jurisdiction",
+    "validity",
+    "week_definition",
+    "input_contract",
+    "picking_rules",
+    "contracts",
+    "shift_catalog",
+    "sunday_policy",
+    "compensation_policy",
+    "employee_preference_policy",
+    "constraints",
+    "legal_references",
+    "evidence_requirements",
+    "violation_severity"
+  ],
+  "properties": {
+    "policy_id": {
+      "type": "string",
+      "pattern": "^[A-Z0-9_-]+$"
+    },
+    "policy_version": {
+      "type": "string",
+      "pattern": "^v?[0-9]+\\.[0-9]+\\.[0-9]+$"
+    },
+    "sector_id": {
+      "type": "string",
+      "pattern": "^[A-Z0-9_]+$"
+    },
+    "description": {
+      "type": "string",
+      "minLength": 1
+    },
+    "jurisdiction": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "country_code",
+        "state_code",
+        "city_name",
+        "sector"
+      ],
+      "properties": {
+        "country_code": {
+          "type": "string",
+          "pattern": "^[A-Z]{2}$"
+        },
+        "state_code": {
+          "type": "string",
+          "pattern": "^[A-Z]{2}$"
+        },
+        "city_name": {
+          "type": "string",
+          "minLength": 1
+        },
+        "sector": {
+          "type": "string",
+          "minLength": 1
+        },
+        "cnae": {
+          "type": "string",
+          "minLength": 1
+        },
+        "collective_agreement_id": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "validity": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "effective_from",
+        "effective_to"
+      ],
+      "properties": {
+        "effective_from": {
+          "type": "string",
+          "format": "date"
+        },
+        "effective_to": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "format": "date"
+        }
+      }
+    },
+    "week_definition": {
+      "type": "string",
+      "enum": [
+        "MON_SUN",
+        "SUN_SAT"
+      ]
+    },
+    "input_contract": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "scale_model",
+        "required_datasets",
+        "ingestion_order",
+        "correlation_keys"
+      ],
+      "properties": {
+        "scale_model": {
+          "type": "string",
+          "enum": [
+            "SCALE_CYCLE_PRIMARY"
+          ]
+        },
+        "required_datasets": {
+          "type": "array",
+          "minItems": 6,
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "enum": [
+              "compliance_policy",
+              "employee_registry",
+              "shift_catalog",
+              "scale_cycle_template",
+              "cycle_projection_context",
+              "sunday_rotation",
+              "employee_preferences",
+              "exceptions"
+            ]
+          },
+          "allOf": [
+            {
+              "contains": {
+                "const": "compliance_policy"
+              }
+            },
+            {
+              "contains": {
+                "const": "employee_registry"
+              }
+            },
+            {
+              "contains": {
+                "const": "shift_catalog"
+              }
+            },
+            {
+              "contains": {
+                "const": "scale_cycle_template"
+              }
+            },
+            {
+              "contains": {
+                "const": "cycle_projection_context"
+              }
+            },
+            {
+              "contains": {
+                "const": "sunday_rotation"
+              }
+            }
+          ]
+        },
+        "ingestion_order": {
+          "type": "array",
+          "minItems": 6,
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "enum": [
+              "compliance_policy",
+              "employee_registry",
+              "shift_catalog",
+              "scale_cycle_template",
+              "cycle_projection_context",
+              "sunday_rotation",
+              "employee_preferences",
+              "exceptions"
+            ]
+          }
+        },
+        "correlation_keys": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "employee_primary_key",
+            "employee_fallback_keys",
+            "cycle_assignment_key",
+            "day_assignment_key",
+            "sunday_link_key",
+            "preference_request_key",
+            "reject_ambiguous_name_match"
+          ],
+          "properties": {
+            "employee_primary_key": {
+              "type": "string",
+              "const": "employee_id"
+            },
+            "employee_fallback_keys": {
+              "type": "array",
+              "minItems": 1,
+              "uniqueItems": true,
+              "items": {
+                "type": "string",
+                "enum": [
+                  "name_normalized",
+                  "employee_alias"
+                ]
+              }
+            },
+            "cycle_assignment_key": {
+              "type": "array",
+              "const": [
+                "scale_id",
+                "employee_id",
+                "cycle_day"
+              ]
+            },
+            "day_assignment_key": {
+              "type": "array",
+              "const": [
+                "employee_id",
+                "work_date"
+              ]
+            },
+            "sunday_link_key": {
+              "type": "array",
+              "const": [
+                "employee_id",
+                "sunday_date"
+              ]
+            },
+            "preference_request_key": {
+              "type": "array",
+              "const": [
+                "employee_id",
+                "request_date",
+                "request_type"
+              ]
+            },
+            "reject_ambiguous_name_match": {
+              "type": "boolean"
+            }
+          }
+        }
+      }
+    },
+    "picking_rules": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "strategy",
+        "criteria"
+      ],
+      "properties": {
+        "strategy": {
+          "type": "string",
+          "enum": [
+            "WEIGHTED_SCORE",
+            "FIRST_COME_FIRST_SERVED",
+            "MANUAL_ONLY",
+            "MANUAL_RANK"
+          ]
+        },
+        "criteria": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": [
+              "type",
+              "weight"
+            ],
+            "properties": {
+              "type": {
+                "type": "string",
+                "enum": [
+                  "SENIORITY",
+                  "FIXED_CONSTRAINT",
+                  "ROTATION_SCORE",
+                  "PERFORMANCE_TIER",
+                  "MANUAL_OVERRIDE"
+                ]
+              },
+              "weight": {
+                "type": "integer"
+              },
+              "description": {
+                "type": "string"
+              }
+            }
+          }
+        }
+      }
+    },
+    "contracts": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "#/$defs/contractProfile"
+      }
+    },
+    "shift_catalog": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "weekday_shifts",
+        "sunday_shift"
+      ],
+      "properties": {
+        "weekday_shifts": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "allOf": [
+              {
+                "$ref": "#/$defs/shiftDefinition"
+              },
+              {
+                "properties": {
+                  "day_scope": {
+                    "const": "WEEKDAY"
+                  }
+                }
+              }
+            ]
+          }
+        },
+        "sunday_shift": {
+          "allOf": [
+            {
+              "$ref": "#/$defs/shiftDefinition"
+            },
+            {
+              "properties": {
+                "day_scope": {
+                  "const": "SUNDAY"
+                }
+              }
+            }
+          ]
+        }
+      }
+    },
+    "sunday_policy": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "coverage_per_sunday",
+        "assignment_mode",
+        "fair_distribution"
+      ],
+      "properties": {
+        "coverage_per_sunday": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "assignment_mode": {
+          "type": "string",
+          "enum": [
+            "FIXED_LIST",
+            "ROTATION",
+            "HYBRID"
+          ]
+        },
+        "locked_assignments": {
+          "type": "boolean",
+          "default": false
+        },
+        "minimum_gap_between_sundays": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "fair_distribution": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "max_diff_between_employees"
+          ],
+          "properties": {
+            "max_diff_between_employees": {
+              "type": "integer",
+              "minimum": 0
+            }
+          }
+        }
+      }
+    },
+    "compensation_policy": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "strategy",
+        "link_compensation_to_sunday_work"
+      ],
+      "properties": {
+        "strategy": {
+          "type": "string",
+          "enum": [
+            "OFFSET_DAYS_AFTER_SUNDAY",
+            "FIXED_WEEKDAY",
+            "NO_COMPENSATION"
+          ]
+        },
+        "default_folga_offset_days": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 6
+        },
+        "allowed_folga_weekdays": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "enum": [
+              "MON",
+              "TUE",
+              "WED",
+              "THU",
+              "FRI",
+              "SAT",
+              "SUN"
+            ]
+          }
+        },
+        "link_compensation_to_sunday_work": {
+          "type": "boolean"
+        }
+      }
+    },
+    "employee_preference_policy": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "enabled",
+        "accepted_request_types",
+        "max_approved_requests_per_employee_per_cycle",
+        "max_weekly_delta_after_preference_minutes",
+        "reject_if_breaks_hard_constraints",
+        "reject_if_breaks_sunday_coverage",
+        "allow_rh_override"
+      ],
+      "properties": {
+        "enabled": {
+          "type": "boolean"
+        },
+        "accepted_request_types": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "enum": [
+              "FOLGA_ON_DATE",
+              "SHIFT_CHANGE_ON_DATE",
+              "AVOID_SUNDAY_DATE"
+            ]
+          }
+        },
+        "max_approved_requests_per_employee_per_cycle": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "max_weekly_delta_after_preference_minutes": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "reject_if_breaks_hard_constraints": {
+          "type": "boolean"
+        },
+        "reject_if_breaks_sunday_coverage": {
+          "type": "boolean"
+        },
+        "allow_rh_override": {
+          "type": "boolean"
+        }
+      }
+    },
+    "constraints": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "max_consecutive_work_days",
+        "min_intershift_rest_minutes",
+        "require_rest_in_any_7_day_window",
+        "enforce_weekly_contract_minutes",
+        "weekly_minutes_tolerance",
+        "reject_unknown_shift_codes",
+        "reject_unknown_dom_folgas_markers",
+        "accepted_dom_folgas_markers",
+        "marker_semantics"
+      ],
+      "properties": {
+        "max_consecutive_work_days": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 6
+        },
+        "min_intershift_rest_minutes": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "require_rest_in_any_7_day_window": {
+          "type": "boolean"
+        },
+        "enforce_weekly_contract_minutes": {
+          "type": "boolean"
+        },
+        "weekly_minutes_tolerance": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "reject_unknown_shift_codes": {
+          "type": "boolean"
+        },
+        "reject_unknown_dom_folgas_markers": {
+          "type": "boolean"
+        },
+        "accepted_dom_folgas_markers": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "marker_semantics": {
+          "type": "object",
+          "minProperties": 1,
+          "additionalProperties": {
+            "type": "string",
+            "enum": [
+              "WORK",
+              "FOLGA",
+              "SUNDAY_WORK",
+              "SUNDAY_COMPENSATION",
+              "UNKNOWN"
+            ]
+          }
+        }
+      }
+    },
+    "legal_references": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "#/$defs/legalReference"
+      }
+    },
+    "evidence_requirements": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "include_rule_code",
+        "include_source_reference",
+        "include_datespan",
+        "include_employee_identifier",
+        "include_suggested_fix"
+      ],
+      "properties": {
+        "include_rule_code": {
+          "type": "boolean"
+        },
+        "include_source_reference": {
+          "type": "boolean"
+        },
+        "include_datespan": {
+          "type": "boolean"
+        },
+        "include_employee_identifier": {
+          "type": "boolean"
+        },
+        "include_suggested_fix": {
+          "type": "boolean"
+        }
+      }
+    },
+    "violation_severity": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "hard_default",
+        "soft_default",
+        "rule_overrides"
+      ],
+      "properties": {
+        "hard_default": {
+          "type": "string",
+          "enum": [
+            "CRITICAL",
+            "HIGH"
+          ]
+        },
+        "soft_default": {
+          "type": "string",
+          "enum": [
+            "MEDIUM",
+            "LOW"
+          ]
+        },
+        "rule_overrides": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "rule_code",
+              "severity"
+            ],
+            "properties": {
+              "rule_code": {
+                "type": "string",
+                "minLength": 1
+              },
+              "severity": {
+                "type": "string",
+                "enum": [
+                  "CRITICAL",
+                  "HIGH",
+                  "MEDIUM",
+                  "LOW"
+                ]
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "$defs": {
+    "contractProfile": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "contract_code",
+        "weekly_minutes",
+        "employees",
+        "sunday_mode"
+      ],
+      "properties": {
+        "contract_code": {
+          "type": "string",
+          "pattern": "^[A-Z0-9_-]+$"
+        },
+        "weekly_minutes": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "employees": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "allowed_weekday_shift_codes": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "pattern": "^[A-Z0-9_]+$"
+          }
+        },
+        "sunday_mode": {
+          "type": "string",
+          "enum": [
+            "WORK_WITH_COMPENSATION",
+            "SUNDAY_OFF",
+            "MIXED"
+          ]
+        },
+        "max_sundays_per_4_weeks": {
+          "type": "integer",
+          "minimum": 0
+        }
+      }
+    },
+    "shiftDefinition": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "code",
+        "minutes",
+        "day_scope"
+      ],
+      "properties": {
+        "code": {
+          "type": "string",
+          "pattern": "^[A-Z0-9_]+$"
+        },
+        "start_time": {
+          "type": "string",
+          "pattern": "^([01]\\d|2[0-3]):[0-5]\\d$"
+        },
+        "end_time": {
+          "type": "string",
+          "pattern": "^([01]\\d|2[0-3]):[0-5]\\d$"
+        },
+        "minutes": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 1440
+        },
+        "day_scope": {
+          "type": "string",
+          "enum": [
+            "WEEKDAY",
+            "SUNDAY"
+          ]
+        },
+        "tags": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      }
+    },
+    "legalReference": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "rule_code",
+        "hard_constraint",
+        "source",
+        "description"
+      ],
+      "properties": {
+        "rule_code": {
+          "type": "string",
+          "minLength": 1
+        },
+        "hard_constraint": {
+          "type": "boolean"
+        },
+        "description": {
+          "type": "string",
+          "minLength": 1
+        },
+        "source": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "type",
+            "identifier"
+          ],
+          "properties": {
+            "type": {
+              "type": "string",
+              "enum": [
+                "CLT",
+                "CCT",
+                "ACT",
+                "PORTARIA",
+                "LEI",
+                "INTERNAL_POLICY"
+              ]
+            },
+            "identifier": {
+              "type": "string",
+              "minLength": 1
+            },
+            "url": {
+              "type": "string",
+              "format": "uri"
+            }
+          }
+        }
+      }
+    }
+  }
+}

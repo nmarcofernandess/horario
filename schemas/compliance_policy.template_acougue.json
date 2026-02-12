@@ -1,0 +1,191 @@
+{
+    "policy_id": "ACOUGUE_BR_PR_MARINGA_TEMPLATE",
+    "policy_version": "v1.0.0",
+    "sector_id": "ACOUGUE",
+    "description": "Template de politica para setor de Acougue (operacao continua, turnos matinais)",
+    "jurisdiction": {
+        "country_code": "BR",
+        "state_code": "PR",
+        "city_name": "Maringa",
+        "sector": "Comercio varejista - Acougue",
+        "cnae": "4722-9/01"
+    },
+    "validity": {
+        "effective_from": "2026-06-01",
+        "effective_to": null
+    },
+    "week_definition": "MON_SUN",
+    "input_contract": {
+        "scale_model": "SCALE_CYCLE_PRIMARY",
+        "required_datasets": [
+            "compliance_policy",
+            "employee_registry",
+            "shift_catalog",
+            "scale_cycle_template",
+            "cycle_projection_context",
+            "employee_preferences",
+            "exceptions"
+        ],
+        "ingestion_order": [
+            "compliance_policy",
+            "employee_registry",
+            "shift_catalog",
+            "scale_cycle_template",
+            "cycle_projection_context",
+            "exceptions"
+        ],
+        "correlation_keys": {
+            "employee_primary_key": "employee_id",
+            "employee_fallback_keys": [
+                "name_normalized"
+            ],
+            "cycle_assignment_key": [
+                "scale_id",
+                "employee_id",
+                "cycle_day"
+            ],
+            "day_assignment_key": [
+                "employee_id",
+                "work_date"
+            ],
+            "preference_request_key": [
+                "employee_id",
+                "request_date",
+                "request_type"
+            ],
+            "sunday_link_key": [
+                "employee_id",
+                "sunday_date"
+            ],
+            "reject_ambiguous_name_match": true
+        }
+    },
+    "picking_rules": {
+        "strategy": "WEIGHTED_SCORE",
+        "criteria": [
+            {
+                "type": "FIXED_CONSTRAINT",
+                "weight": 1000,
+                "description": "Compromissos inadiaveis"
+            },
+            {
+                "type": "SENIORITY",
+                "weight": 20,
+                "description": "Senioridade (peso menor que Caixa)"
+            },
+            {
+                "type": "PERFORMANCE_TIER",
+                "weight": 30,
+                "description": "Performance de corte/atendimento"
+            }
+        ]
+    },
+    "contracts": [
+        {
+            "contract_code": "H44_ACOUGUE_PADRAO",
+            "weekly_minutes": 2640,
+            "employees": [],
+            "allowed_weekday_shift_codes": [
+                "ACO1",
+                "ACO2"
+            ],
+            "sunday_mode": "WORK_WITH_COMPENSATION",
+            "max_sundays_per_4_weeks": 2
+        }
+    ],
+    "shift_catalog": {
+        "weekday_shifts": [
+            {
+                "code": "ACO1",
+                "minutes": 520,
+                "day_scope": "WEEKDAY",
+                "start_time": "07:00",
+                "end_time": "16:20",
+                "tags": [
+                    "abertura"
+                ]
+            },
+            {
+                "code": "ACO2",
+                "minutes": 520,
+                "day_scope": "WEEKDAY",
+                "start_time": "12:00",
+                "end_time": "21:20",
+                "tags": [
+                    "fechamento"
+                ]
+            }
+        ],
+        "sunday_shift": {
+            "code": "DOM_08_13",
+            "minutes": 300,
+            "day_scope": "SUNDAY",
+            "start_time": "08:00",
+            "end_time": "13:00",
+            "tags": [
+                "domingo-padrao"
+            ]
+        }
+    },
+    "sunday_policy": {
+        "coverage_per_sunday": 2,
+        "assignment_mode": "ROTATION",
+        "locked_assignments": false,
+        "minimum_gap_between_sundays": 1,
+        "fair_distribution": {
+            "max_diff_between_employees": 1
+        }
+    },
+    "compensation_policy": {
+        "strategy": "OFFSET_DAYS_AFTER_SUNDAY",
+        "default_folga_offset_days": 1,
+        "allowed_folga_weekdays": [
+            "MON",
+            "TUE",
+            "WED"
+        ],
+        "link_compensation_to_sunday_work": true
+    },
+    "employee_preference_policy": {
+        "enabled": true,
+        "accepted_request_types": [
+            "FOLGA_ON_DATE",
+            "AVOID_SUNDAY_DATE"
+        ],
+        "max_approved_requests_per_employee_per_cycle": 1,
+        "max_weekly_delta_after_preference_minutes": 60,
+        "reject_if_breaks_hard_constraints": true,
+        "reject_if_breaks_sunday_coverage": true,
+        "allow_rh_override": true
+    },
+    "constraints": {
+        "max_consecutive_work_days": 6,
+        "min_intershift_rest_minutes": 660,
+        "require_rest_in_any_7_day_window": true,
+        "enforce_weekly_contract_minutes": true,
+        "weekly_minutes_tolerance": 60,
+        "reject_unknown_shift_codes": true,
+        "reject_unknown_dom_folgas_markers": false,
+        "accepted_dom_folgas_markers": [
+            "FOLGA",
+            "DOMINGO"
+        ],
+        "marker_semantics": {
+            "FOLGA": "FOLGA",
+            "DOMINGO": "SUNDAY_WORK"
+        }
+    },
+    "legal_references": [],
+    "evidence_requirements": {
+        "include_rule_code": true,
+        "include_source_reference": true,
+        "include_datespan": true,
+        "include_employee_identifier": true,
+        "include_suggested_fix": true
+    },
+    "violation_severity": {
+        "hard_default": "CRITICAL",
+        "soft_default": "MEDIUM",
+        "rule_overrides": []
+    }
+}
