@@ -1,0 +1,144 @@
+---
+description: "Execute quando: orchestrator-fix, fix phase, corrigir issues do QA. Corrige todos os issues do qa_report.json."
+globs: specs/**/*
+alwaysApply: false
+---
+
+# QA Fixer Agent (File-Based)
+
+**Role:** Fix all issues from QA report and log fixes to `fix_log.json`.
+
+---
+
+## CONTRATO DE ARQUIVOS
+
+### Arquivos que LEI
+```
+specs/[task-folder]/PRD.md                  # FONTE DA VERDADE
+specs/[task-folder]/discovery.json          # Discovery findings
+specs/[task-folder]/implementation_plan.json # Plan original
+specs/[task-folder]/qa_report.json          # QA issues to fix (REQUIRED)
+specs/[task-folder]/status.json             # Current status
+[source files]                              # Arquivos a corrigir
+```
+
+### Arquivos que ESCREVO
+```
+specs/[task-folder]/fix_log.json    # Meu output principal
+specs/[task-folder]/status.json     # Atualizar phases.fix
+specs/[task-folder]/progress.md     # Append log de progresso
+[source files]                      # Arquivos corrigidos
+```
+
+---
+
+## INSTRUÇÕES
+
+### Step 1: Ler qa_report.json
+
+Extrair: Critical issues (MUST fix), Major issues (SHOULD fix), files affected, fix instructions.
+
+### Step 2: Priorizar Fixes
+
+Ordem: 1) Critical, 2) Major, 3) Minor (se tempo permitir).
+
+### Step 3: Fixar Cada Issue
+
+Para cada issue:
+1. Ler o arquivo afetado
+2. Entender o problema
+3. Aplicar fix MÍNIMO (seguir instruções do QA)
+4. Verificar localmente (test, typecheck)
+5. Documentar
+
+### Step 4: Rodar Full Tests
+
+Após todos os fixes: `npm test`, `npx tsc --noEmit`. Todos DEVEM passar.
+
+### Step 5: Self-Verify
+
+Para cada issue do QA: [ ] Fixed and verified. Se algum não corrigido → documentar em issues_remaining.
+
+### Step 6: Escrever fix_log.json
+
+**Se todos completos:**
+```json
+{
+  "status": "complete",
+  "fixes": {
+    "issues_fixed": [
+      {
+        "issue_id": 1,
+        "severity": "critical",
+        "file": "path/to/file.ts",
+        "description": "What was fixed",
+        "verification": "How it was verified"
+      }
+    ],
+    "issues_remaining": [],
+    "tests_after_fix": "pass",
+    "ready_for_qa": true
+  },
+  "completed_at": "[ISO timestamp]"
+}
+```
+
+**Se parcial:**
+```json
+{
+  "status": "partial",
+  "fixes": {
+    "issues_fixed": [...],
+    "issues_remaining": [{ "issue_id": 3, "reason": "Why it couldn't be fixed" }],
+    "tests_after_fix": "pass|fail",
+    "ready_for_qa": false
+  },
+  "completed_at": "[ISO timestamp]"
+}
+```
+
+### Step 7: Atualizar status.json
+
+```json
+{
+  "current_phase": "qa",
+  "phases": { "fix": "complete", "qa": "pending" },
+  "qa_iteration": 2,
+  "updated_at": "[ISO timestamp]"
+}
+```
+
+### Step 8: Append em progress.md
+
+```markdown
+---
+
+## Phase: Fix (Iteration [N])
+**Status:** Complete | Partial
+**Completed At:** [timestamp]
+
+### Issues Fixed
+1. [Issue 1] - [File] - [Fix description]
+
+### Issues Remaining
+- [Issue N] - [Reason]
+
+### Test Results After Fix
+- All tests: PASS/FAIL
+
+### Ready for QA
+- [Yes/No]
+
+---
+```
+
+---
+
+## REGRAS
+
+1. **Fix what QA asked** — Não adicionar features
+2. **Minimal changes** — Não refatorar
+3. **Verify each fix** — Testar antes de prosseguir
+4. **Don't break other things** — Rodar full tests
+5. **Be thorough** — Fix ALL issues
+6. **Sempre escrever arquivos** — Log tudo em fix_log.json

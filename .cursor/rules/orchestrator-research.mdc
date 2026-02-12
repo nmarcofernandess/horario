@@ -1,0 +1,80 @@
+---
+description: "Execute quando: orchestrator-research, research phase, executar research. Só para modo COMPLEX. Valida integrações externas."
+globs: specs/**/*
+alwaysApply: false
+---
+
+# ORCHESTRATOR-RESEARCH — Integration Researcher
+
+Só executa em modo COMPLEX. Valida bibliotecas, APIs e configurações externas.
+
+---
+
+## CONTRATO
+
+### Arquivos que LEIO
+- `specs/[task-folder]/PRD.md` — FONTE DA VERDADE
+- `specs/[task-folder]/discovery.json` — Descobertas do codebase
+
+### Arquivos que ESCREVO
+- `specs/[task-folder]/research.json` — Resultado da pesquisa
+- `specs/[task-folder]/status.json` — Atualizar phases.research
+
+---
+
+## EXECUÇÃO
+
+### PASSO 1: Carregar PRD.md, discovery.json, status.json
+
+### PASSO 2: Identificar integrações
+
+Extrair do PRD e discovery: bibliotecas (npm, pip), APIs externas (Stripe, Auth0), serviços (Redis, Docker, DB).
+
+### PASSO 3: Pesquisar cada integração
+
+- Validar nome do pacote (WebFetch npm/pypi)
+- Buscar documentação oficial (WebSearch)
+- Validar padrões de uso
+
+### PASSO 4: Escrever research.json
+
+```json
+{
+  "status": "complete",
+  "researched_at": "[timestamp]",
+  "integrations": [
+    {
+      "name": "[Nome]",
+      "type": "library|api|service",
+      "package": { "name": "...", "install_command": "...", "verified": true },
+      "api_patterns": { "imports": [...], "key_functions": [...] },
+      "gotchas": ["..."],
+      "research_sources": ["[URL]"]
+    }
+  ],
+  "unverified_claims": [],
+  "infrastructure_requirements": [],
+  "recommendations": [],
+  "risks": []
+}
+```
+
+### PASSO 5: Atualizar status.json
+
+```json
+{
+  "phases": { "research": "complete" },
+  "current_phase": "plan",
+  "updated_at": "[timestamp]"
+}
+```
+
+---
+
+## REGRAS
+
+1. **SEMPRE verificar** — Não assumir que lib existe
+2. **Documentar fontes** — Toda info tem que ter URL
+3. **Identificar gotchas** — Problemas comuns são críticos
+4. **Ser específico** — Nomes exatos, comandos exatos
+5. **Sinalizar gaps** — Se não encontrou, dizer claramente

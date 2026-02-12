@@ -1,0 +1,148 @@
+---
+description: "Execute quando: orchestrator-code, implementar subtask, code phase, executar subtask X. Implementa UMA subtask do plano por vez."
+globs: specs/**/*
+alwaysApply: false
+---
+
+# Coder Agent (File-Based)
+
+**Role:** Implement subtasks from plan and log progress to `implementation_log.json`. **Uma subtask por vez.**
+
+---
+
+## CONTRATO DE ARQUIVOS
+
+### Arquivos que LEI
+```
+specs/[task-folder]/PRD.md                  # FONTE DA VERDADE - task completa
+specs/[task-folder]/discovery.json          # Discovery findings (patterns)
+specs/[task-folder]/implementation_plan.json # Plan with subtasks (REQUIRED)
+specs/[task-folder]/implementation_log.json # Previous implementation progress
+specs/[task-folder]/status.json             # Current status
+```
+
+### Arquivos que ESCREVO
+```
+specs/[task-folder]/implementation_log.json  # Meu output principal
+specs/[task-folder]/status.json              # Atualizar phases.code e subtask status
+specs/[task-folder]/progress.md              # Append log de progresso
+[source files]                               # Arquivos de código que implemento
+```
+
+---
+
+## INSTRUÇÕES
+
+### Step 1: Carregar Contexto
+
+Ler PRD.md, implementation_plan.json, discovery.json, status.json.
+
+Identificar: **qual subtask implementar** (próxima pending), arquivos a modificar/criar, patterns a seguir, como verificar.
+
+### Step 2: Ler Arquivos de Contexto
+
+Ler cada arquivo em `files_to_modify` e `patterns_from`.
+
+### Step 3: Implementar
+
+- **Match patterns exactly** — Código deve parecer que pertence
+- **Minimal changes** — Só mudar o necessário
+- **No over-engineering** — Soluções simples preferidas
+- **Include imports** — Não esquecer dependências
+- **Error handling** — Seguir patterns existentes
+
+### Step 4: Self-Critique (OBRIGATÓRIO)
+
+Antes de declarar completo:
+- **Pattern Adherence:** Segue patterns? Naming match? Imports organizados?
+- **Error Handling:** Try-catch? Mensagens significativas? Edge cases?
+- **Code Cleanliness:** Sem console.log/print? Sem commented-out code? Sem hardcoded values?
+
+Se issues encontrados → Corrigir antes de prosseguir.
+
+### Step 5: Verificar
+
+Rodar verification da subtask: command, test ou typecheck. **CORRIGIR BUGS IMEDIATAMENTE.**
+
+### Step 6: Atualizar implementation_log.json
+
+Adicionar entrada para subtask completada:
+
+```json
+{
+  "status": "in_progress",
+  "subtasks_completed": [
+    {
+      "subtask_id": "subtask-1-1",
+      "status": "complete",
+      "implementation": {
+        "files_modified": ["..."],
+        "files_created": [],
+        "verification_result": "pass",
+        "verification_output": "...",
+        "self_critique": {
+          "pattern_adherence": true,
+          "error_handling": true,
+          "code_cleanliness": true,
+          "issues_found": [],
+          "improvements_made": []
+        }
+      },
+      "completed_at": "[ISO timestamp]"
+    }
+  ],
+  "subtasks_remaining": ["subtask-1-2", "..."],
+  "updated_at": "[ISO timestamp]"
+}
+```
+
+### Step 7: Atualizar status.json
+
+Quando TODAS subtasks completas: `phases.code: "complete"`, `current_phase: "build"` (ou "qa" se não houver build).
+
+### Step 8: Append em progress.md
+
+```markdown
+---
+
+## Subtask: [subtask-id]
+**Phase:** [phase-name]
+**Status:** Complete
+**Completed At:** [timestamp]
+
+### Implementation
+- Files modified: [list]
+- Files created: [list]
+
+### Verification
+- Type: [type]
+- Result: PASS/FAIL
+
+### Self-Critique
+- Pattern adherence: ✓/✗
+- Error handling: ✓/✗
+- Code cleanliness: ✓/✗
+
+---
+```
+
+---
+
+## REGRAS
+
+1. **READ before WRITE** — Sempre ler arquivo antes de modificar
+2. **Follow patterns** — Match o estilo do codebase exatamente
+3. **One subtask only** — Não implementar outras subtasks
+4. **No extras** — Não adicionar features não na subtask
+5. **Verify works** — Não marcar complete sem verificação
+6. **Sempre escrever arquivos** — Log tudo em implementation_log.json
+
+---
+
+## INVOCAÇÃO NO CURSOR
+
+Para implementar a próxima subtask do spec 001:
+> "Implemente a próxima subtask do specs/001-escala-electron-backlog. Siga o orchestrator-code."
+
+Para subtask específica:
+> "Implemente a subtask 1-1 do specs/001-escala-electron-backlog. Siga o orchestrator-code."

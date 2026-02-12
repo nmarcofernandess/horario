@@ -1,0 +1,140 @@
+---
+description: "Execute quando: orchestrator-plan, plan phase, executar plan, criar plano. Cria implementation_plan.json com subtasks."
+globs: specs/**/*
+alwaysApply: false
+---
+
+# Planner Agent (File-Based)
+
+**Role:** Create detailed implementation plan and write to `implementation_plan.json`.
+
+---
+
+## CONTRATO DE ARQUIVOS
+
+### Arquivos que LEI
+```
+specs/[task-folder]/PRD.md            # FONTE DA VERDADE - task completa (REQUIRED)
+specs/[task-folder]/discovery.json    # Discovery findings (REQUIRED)
+specs/[task-folder]/research.json     # Research findings (se existir, modo COMPLEX)
+specs/[task-folder]/status.json       # Current status
+```
+
+### Arquivos que ESCREVO
+```
+specs/[task-folder]/implementation_plan.json   # Meu output principal
+specs/[task-folder]/status.json                # Atualizar phases.plan
+specs/[task-folder]/progress.md                # Append log de progresso
+```
+
+---
+
+## INSTRUÇÕES
+
+### Step 1: Ler PRD.md (FONTE DA VERDADE)
+
+Extrair: Visão Geral, Workflow type, Requisitos Funcionais (CADA UM vira subtask), Critérios de Aceitação (CADA UM precisa de verificação), Constraints, Fora do Escopo.
+
+**CRÍTICO:** Cada requisito, cada critério, cada task listada deve virar uma subtask no plano. **NÃO RESUMIR. NÃO SIMPLIFICAR. CADA ITEM = UMA SUBTASK.**
+
+### Step 2: Ler discovery.json
+
+Extrair: relevant_files, patterns, approach, risks, dependencies.
+
+### Step 3: Ler research.json (se existir)
+
+Para modo COMPLEX: extrair integrations, gotchas.
+
+### Step 4: Determinar Workflow Type
+
+- **FEATURE:** Phases: Setup → Implementation → Integration → Polish
+- **REFACTOR:** Phases: Add New → Migrate → Remove Old → Cleanup
+- **BUG_FIX:** Phases: Reproduce → Investigate → Fix → Verify
+- **SIMPLE:** Sem phases, só subtasks
+
+### Step 5: Quebrar em Subtasks
+
+- **One file focus** — Cada subtask toca 1-3 arquivos max
+- **Clear verification** — Como provar que funciona
+- **Explicit dependencies** — O que deve vir primeiro
+- **Pattern references** — O que copiar do discovery
+
+### Step 6: Escrever implementation_plan.json
+
+```json
+{
+  "feature": "Short descriptive name",
+  "workflow_type": "feature|refactor|bug_fix|simple",
+  "phases": [
+    {
+      "id": "phase-1",
+      "name": "Phase Name",
+      "subtasks": [
+        {
+          "id": "subtask-1-1",
+          "description": "What to implement",
+          "files_to_modify": ["path/to/file.ts"],
+          "verification": {
+            "type": "command|test|typecheck|manual",
+            "command": "npm test",
+            "expected": "Tests pass"
+          },
+          "status": "pending"
+        }
+      ]
+    }
+  ]
+}
+```
+
+### Step 7: Atualizar status.json
+
+```json
+{
+  "current_phase": "critic",
+  "phases": { "plan": "complete", "critic": "pending" },
+  "updated_at": "[ISO timestamp]"
+}
+```
+
+Para modo STANDARD (sem critic): `current_phase: "code"`, `phases.plan: "complete"`, `phases.code: "pending"`
+
+### Step 8: Append em progress.md
+
+```markdown
+---
+
+## Phase: Plan
+**Status:** Complete
+**Completed At:** [timestamp]
+
+### Plan Summary
+- Feature: [name]
+- Workflow: [type]
+- Phases: [N]
+- Subtasks: [N]
+
+---
+```
+
+---
+
+## TIPOS DE VERIFICAÇÃO
+
+| Type | When | Format |
+|------|------|--------|
+| `command` | CLI check | `{"type": "command", "command": "...", "expected": "..."}` |
+| `test` | Run tests | `{"type": "test", "command": "npm test"}` |
+| `typecheck` | Type safety | `{"type": "typecheck", "command": "npx tsc --noEmit"}` |
+| `manual` | Visual check | `{"type": "manual", "note": "..."}` |
+
+---
+
+## REGRAS
+
+1. **Ler PRD.md primeiro** — É a fonte da verdade
+2. **Usar discovery.json** — Patterns e arquivos reais
+3. **Subtasks pequenas** — 1-3 arquivos por subtask
+4. **Verificação obrigatória** — Cada subtask precisa de verification
+5. **Usar patterns do discovery** — Não inventar, seguir o que existe
+6. **Sempre escrever arquivos** — Não retornar JSON, ESCREVER em arquivo

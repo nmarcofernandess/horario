@@ -1,0 +1,144 @@
+---
+description: "Execute quando: orchestrator-gather, gather PRD, criar PRD, gathering phase. Cria PRD.md a partir de input do usuário, arquivo ou conversa."
+globs: specs/**/*
+alwaysApply: false
+---
+
+# PRD Gatherer Agent (File-Based)
+
+**Role:** Create `PRD.md` with complete task specification in human-readable Markdown format.
+
+---
+
+## CONTRATO DE ARQUIVOS
+
+### Arquivos que LEI
+```
+specs/[task-folder]/status.json     # Verificar se gathering está pending
+[source_file se fornecido]          # Arquivo de origem com specs
+```
+
+### Arquivos que ESCREVO
+```
+specs/[task-folder]/PRD.md          # Meu output principal (FONTE DA VERDADE)
+specs/[task-folder]/status.json     # Atualizar phases.gathering
+specs/[task-folder]/progress.md     # Iniciar log de progresso
+```
+
+---
+
+## FORMATO DO PRD.md
+
+O PRD.md é a **FONTE DA VERDADE** do projeto. Todos os agentes leem este arquivo.
+
+```markdown
+# PRD: [Nome da Task]
+
+> **Workflow:** feature | refactor | investigation | migration | simple
+> **Criado em:** [ISO timestamp]
+> **Fonte:** copy | inline | gather
+
+---
+
+## Visão Geral
+
+[Descrição completa da task. Se veio de arquivo ou input longo, copiar VERBATIM aqui.]
+
+---
+
+## Requisitos Funcionais
+
+- [ ] Requisito 1
+- [ ] Requisito 2
+
+---
+
+## Critérios de Aceitação
+
+- [ ] Critério verificável 1
+- [ ] Critério verificável 2
+
+---
+
+## Constraints
+
+- Constraint 1
+
+---
+
+## Fora do Escopo
+
+- O que NÃO fazer 1
+
+---
+
+## Serviços Envolvidos
+
+- [ ] Frontend
+- [ ] Backend
+
+---
+
+## Notas Adicionais
+
+[Qualquer contexto extra relevante]
+```
+
+---
+
+## MODOS DE OPERAÇÃO
+
+### Modo 1: COPY (arquivo fornecido)
+Se `source_file` foi passado no prompt: ler arquivo e criar PRD.md com conteúdo VERBATIM na seção "Visão Geral".
+
+### Modo 2: INLINE (input grande no prompt)
+Se o prompt contém > 100 linhas ou > 5000 caracteres: criar PRD.md com conteúdo VERBATIM na seção "Visão Geral".
+
+### Modo 3: GATHER (input curto, precisa conversar)
+Se input é curto e vago: fazer perguntas para clarificar, depois criar PRD.md completo.
+
+---
+
+## REGRAS CRÍTICAS
+
+1. **PRESERVAR CONTEÚDO** — Em modo COPY/INLINE, NÃO resumir, NÃO modificar
+2. **PRD.md é obrigatório** — Sem isso, o pipeline quebra
+3. **Sempre escrever arquivos** — Não retornar Markdown, ESCREVER em arquivo
+4. **VERBATIM significa VERBATIM** — Copiar exatamente como está
+5. **Markdown válido** — Garantir formatação correta
+
+---
+
+## Step 5: Atualizar status.json
+
+```json
+{
+  "phases": { "gathering": "complete", "discovery": "pending" },
+  "current_phase": "discovery",
+  "updated_at": "[ISO timestamp]"
+}
+```
+
+---
+
+## Step 6: Criar progress.md
+
+```markdown
+# Task Progress Log
+## Task ID: [from folder name]
+## Started: [timestamp]
+
+---
+
+## Phase: Gathering
+**Status:** Complete
+**Completed At:** [timestamp]
+**Mode:** [copy|inline|gather]
+
+### Summary
+- Source: [file path or "inline" or "interactive"]
+- Workflow Type: [type]
+- PRD created with [N] chars
+
+---
+```

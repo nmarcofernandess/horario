@@ -1,0 +1,121 @@
+{
+  "feature": "Escala Electron Backlog T7-T22",
+  "workflow_type": "standard",
+  "spec_dir": "specs/001-escala-electron-backlog",
+  "phases": [
+    {
+      "id": "phase-1",
+      "name": "API Client + Config Turnos/Exceções/Demand",
+      "subtasks": [
+        {
+          "id": "subtask-1-1",
+          "description": "Adicionar em api.ts: shifts.list(), exceptions.list(), exceptions.create(), demandProfile.list(), demandProfile.create()",
+          "files_to_modify": ["electron-app/src/renderer/lib/api.ts"],
+          "verification": {"type": "manual", "note": "Testar chamadas no browser console"},
+          "status": "complete"
+        },
+        {
+          "id": "subtask-1-2",
+          "description": "ConfiguracaoPage tab Turnos: buscar GET /shifts, exibir tabela (código, duração, tipo)",
+          "files_to_modify": ["electron-app/src/renderer/pages/ConfiguracaoPage.tsx"],
+          "verification": {"type": "manual", "note": "Tab Turnos mostra turnos da API"},
+          "status": "complete"
+        },
+        {
+          "id": "subtask-1-3",
+          "description": "ConfiguracaoPage tab Exceções: lista GET /exceptions + form POST (colaborador, data, tipo)",
+          "files_to_modify": ["electron-app/src/renderer/pages/ConfiguracaoPage.tsx"],
+          "verification": {"type": "manual", "note": "Listar e criar exceção"},
+          "status": "complete"
+        },
+        {
+          "id": "subtask-1-4",
+          "description": "ConfiguracaoPage tab Demand: lista GET /demand-profile + form POST (data, slot, min_required)",
+          "files_to_modify": ["electron-app/src/renderer/pages/ConfiguracaoPage.tsx"],
+          "verification": {"type": "manual", "note": "Listar e criar slot de demanda"},
+          "status": "complete"
+        }
+      ]
+    },
+    {
+      "id": "phase-2",
+      "name": "API Mosaico e Rodízio",
+      "subtasks": [
+        {
+          "id": "subtask-2-1",
+          "description": "Criar api/routes/weekday_template.py: GET (retorna lista) e POST (aceita lista, converte para DataFrame, repo.save_weekday_template)",
+          "files_to_modify": ["api/routes/weekday_template.py", "api/main.py", "api/schemas.py"],
+          "verification": {"type": "manual", "note": "curl GET e POST"},
+          "status": "complete"
+        },
+        {
+          "id": "subtask-2-2",
+          "description": "Criar api/routes/sunday_rotation.py: GET e POST (converte JSON→DataFrame, repo.save_sunday_rotation)",
+          "files_to_modify": ["api/routes/sunday_rotation.py", "api/main.py", "api/schemas.py"],
+          "verification": {"type": "manual", "note": "curl GET e POST"},
+          "status": "complete"
+        },
+        {
+          "id": "subtask-2-3",
+          "description": "Adicionar em api.ts: weekDayTemplate.list(), weekDayTemplate.save(), sundayRotation.list(), sundayRotation.save()",
+          "files_to_modify": ["electron-app/src/renderer/lib/api.ts"],
+          "verification": {"type": "manual", "note": "Métodos disponíveis"},
+          "status": "complete"
+        }
+      ]
+    },
+    {
+      "id": "phase-3",
+      "name": "Config Mosaico e Rodízio UI",
+      "subtasks": [
+        {
+          "id": "subtask-3-1",
+          "description": "ConfiguracaoPage tab Mosaico: grid colaborador×dia(SEG-SAB)→turno; carregar employees+shifts+template; salvar via POST",
+          "files_to_modify": ["electron-app/src/renderer/pages/ConfiguracaoPage.tsx"],
+          "verification": {"type": "manual", "note": "Editar e salvar mosaico"},
+          "status": "complete"
+        },
+        {
+          "id": "subtask-3-2",
+          "description": "ConfiguracaoPage tab Rodízio: tabela domingo/colaborador/folga; carregar e salvar via API",
+          "files_to_modify": ["electron-app/src/renderer/pages/ConfiguracaoPage.tsx"],
+          "verification": {"type": "manual", "note": "Editar e salvar rodízio"},
+          "status": "complete"
+        }
+      ]
+    },
+    {
+      "id": "phase-4",
+      "name": "Escala + Resiliência",
+      "subtasks": [
+        {
+          "id": "subtask-4-1",
+          "description": "EscalaPage: paginação real na tabela (20/página, controles anterior/próxima)",
+          "files_to_modify": ["electron-app/src/renderer/pages/EscalaPage.tsx"],
+          "verification": {"type": "manual", "note": "Página N de M, 20 itens"},
+          "status": "complete"
+        },
+        {
+          "id": "subtask-4-2",
+          "description": "Layout/header: Badge indicador API (Conectado/API offline) + botão Reconectar quando offline",
+          "files_to_modify": ["electron-app/src/renderer/components/Layout.tsx", "electron-app/src/renderer/App.tsx"],
+          "verification": {"type": "manual", "note": "Polling health, badge, retry"},
+          "status": "complete"
+        }
+      ]
+    },
+    {
+      "id": "phase-5",
+      "name": "Perfil (T22)",
+      "subtasks": [
+        {
+          "id": "subtask-5-1",
+          "description": "Criar PerfilPage: nome, foto (upload local), tema (preferência); persistir em localStorage",
+          "files_to_modify": ["electron-app/src/renderer/pages/PerfilPage.tsx", "electron-app/src/renderer/App.tsx", "electron-app/src/renderer/components/app-sidebar.tsx"],
+          "verification": {"type": "manual", "note": "Acessar perfil, editar, persistir"},
+          "status": "complete"
+        }
+      ]
+    }
+  ]
+}

@@ -1,5 +1,9 @@
 # WARLOG — Escala de Caixa Electron
 
+> ⚠️ **Documento legado/histórico**  
+> Warlog ativo do projeto: `docs/WARLOG_SISTEMA_ESCALAFLOW_GLOBAL.md`.
+> Este arquivo fica apenas para rastreabilidade da fase inicial.
+
 > Product Owner Mode: Backlog completo, spec, plano e rastreamento.
 > Data: 2026-02-12
 
@@ -31,9 +35,17 @@
 *** T13: Turnos (listar)
 *** T14: Exceções (CRUD)
 *** T15: Demand (CRUD)
-*** T16: Mosaico/Rodízio (ou remover)
+*** T16: Mosaico CRUD (API + UI)
+*** T16b: Rodízio CRUD (API + UI)
+** 📦 Epico 5: Manutenção/repo
+*** T17: Unificar docs (SISTEMA_ESCALAFLOW.md)
+*** T18: Remover docs antigos (ANALYST, AUDITORIA, DADOS)
+*** T19: Limpar data/ (processed→gitignore, fixtures)
+*** T20: Remover seed_db_from_csv.py
+*** T21: Seed JSON (opcional — migrar CSVs para 1 JSON)
+** 📦 Epico 6: Perfil usuário
+*** T22: Página de perfil (foto, nome, tema) — sem auth, local
 ** 🚫 Fora de Escopo
-*** Streamlit (manter para dev)
 *** API Python (já pronta)
 ** 🎯 Objetivo Final
 *** App Electron com identidade visual
@@ -48,6 +60,10 @@
 MISSAO: App Electron de gestão de escala de caixa com identidade visual,
         vista calendário para imprimir e resiliência à API.
 
+PRODUTO: Multi-tenant SaaS — vendido para várias empresas. Cada cliente configura
+         tudo pela UI (colaboradores, turnos, mosaico, rodízio, exceções).
+         Não há suporte com seed manual; tudo didático e auto-serviço.
+
 OBJETIVO: RH consegue gerar escala, ver em grid/tabela, exportar e configurar
           sem esbarrar em layout genérico ou API offline sem feedback.
 
@@ -56,10 +72,10 @@ ESCOPO:
      - Layout (sidebar escura, accent, container)
      - Escala (grid calendário, tabela, paginação)
      - Resiliência (API status, retry, loading)
-     - Configuração (Turnos, Exceções, Demand)
+     - Configuração (Turnos, Exceções, Demand, Mosaico, Rodízio)
+     - API: adicionar endpoints para Mosaico e Rodízio (repo já tem save/load)
   🚫 NÃO FAZ PARTE:
-     - Reescrever API Python
-     - Mosaico/Rodízio CRUD (API não expõe; seed via script)
+     - Reescrever API Python do zero
      - Dark mode toggle (pode vir depois)
 
 PRAZO: Sem data fixa; ordem de execução definida.
@@ -85,6 +101,8 @@ DUMP CATEGORIZADO:
 - [ ] Turnos: listar da API
 - [ ] Exceções: listar + adicionar
 - [ ] Demand: listar + adicionar slots
+- [ ] Mosaico: definir matriz colaborador×dia→turno (seg–sáb)
+- [ ] Rodízio: definir domingos trabalhados e folga compensatória
 
 🔧 REFACTORS:
 - [ ] Tradução WORK→Trabalho, FOLGA→Folga, ABSENCE→Ausência
@@ -94,6 +112,13 @@ DUMP CATEGORIZADO:
 🧹 CHORES:
 - [ ] Remover frontend-prototype (protótipo obsoleto)
 - [ ] Limpar imports não usados
+- [x] Unificar docs → SISTEMA_ESCALAFLOW.md
+- [x] Remover docs antigos (ANALYST, AUDITORIA, DADOS)
+- [x] Limpar data/ (processed→gitignore)
+- [x] Remover seed_db_from_csv.py redundante
+
+📚 DOCS:
+- [ ] Migrar seed para JSON único (opcional)
 ```
 
 ---
@@ -122,9 +147,16 @@ DUMP CATEGORIZADO:
 *** T13: Turnos listar
 *** T14: Exceções CRUD
 *** T15: Demand CRUD
-*** T16: Mosaico/Rodízio decisão
+*** T16: Mosaico CRUD (API + UI)
+*** T16b: Rodízio CRUD (API + UI)
 ** Chore
 *** T0: Remover frontend-prototype
+** Epico 5: Manutenção
+*** T17: Unificar docs
+*** T18: Remover docs antigos
+*** T19: Limpar data/
+*** T20: Remover seed_db_from_csv
+*** T21: Seed JSON (opcional)
 @endwbs
 ```
 
@@ -151,7 +183,8 @@ DUMP CATEGORIZADO:
 - T4: Hierarquia tipográfica
 - T9: Paginação
 - T13: Turnos
-- T16: Mosaico/Rodízio
+- T16: Mosaico CRUD
+- T16b: Rodízio CRUD
 ```
 
 ---
@@ -178,7 +211,8 @@ DUMP CATEGORIZADO:
 | T13 | -          | -        | T14, T15  |
 | T14 | -          | -        | T13, T15  |
 | T15 | -          | -        | T13, T14  |
-| T16 | -          | -        | -         |
+| T16 | Mosaico CRUD | -        | -         |
+| T16b | Rodízio CRUD | -        | -         |
 
 ### Fluxo de Dependências
 
@@ -211,7 +245,8 @@ fork again
   :T13: Turnos;
   :T14: Exceções;
   :T15: Demand;
-  :T16: Mosaico/Rodízio decisão;
+  :T16: Mosaico CRUD;
+  :T16b: Rodízio CRUD;
 end fork
 
 :Integração final;
@@ -248,8 +283,8 @@ T0 → T5 → T6 → T7/T8 → Integração
 | T2  | Cor de destaque nav      | ✨   | ✅ Done   | 🟢    | -     | P    |
 | T3  | Container max-width      | 🔧   | ✅ Done   | 🟢    | -     | P    |
 | T4  | Hierarquia tipográfica   | 🔧   | ✅ Done   | 🟢    | T1,T2 | P    |
-| T5  | Vista Calendário grid    | ✨   | 📋 Backlog| 🟢    | -     | M    |
-| T6  | Tab Calendário + Tabela  | ✨   | 📋 Backlog| 🟢    | T5    | M    |
+| T5  | Vista Calendário grid    | ✨   | ✅ Done   | 🟢    | -     | M    |
+| T6  | Tab Calendário + Tabela  | ✨   | ✅ Done   | 🟢    | T5    | M    |
 | T7  | Tradução termos          | 🔧   | 📋 Backlog| 🟢    | T6    | P    |
 | T8  | Células coloridas        | ✨   | 📋 Backlog| 🟢    | T6    | P    |
 | T9  | Paginação tabela         | ✨   | 📋 Backlog| 🟢    | T6    | M    |
@@ -259,7 +294,13 @@ T0 → T5 → T6 → T7/T8 → Integração
 | T13 | Turnos listar            | ✨   | 📋 Backlog| 🟢    | -     | P    |
 | T14 | Exceções CRUD            | ✨   | 📋 Backlog| 🟢    | -     | M    |
 | T15 | Demand CRUD              | ✨   | 📋 Backlog| 🟢    | -     | M    |
-| T16 | Mosaico/Rodízio decisão  | 🔍   | 📋 Backlog| 🟡    | -     | P    |
+| T16 | Mosaico CRUD (API + UI) | 🔍   | 📋 Backlog| 🟡    | -     | P    |
+| T16b | Rodízio CRUD (API + UI) | 🔍   | 📋 Backlog| 🟡    | -     | P    |
+| T17 | Unificar docs            | 🧹   | ✅ Done   | 🟢    | -     | P    |
+| T18 | Remover docs antigos     | 🧹   | ✅ Done   | 🟢    | T17   | P    |
+| T19 | Limpar data/             | 🧹   | ✅ Done   | 🟢    | -     | P    |
+| T20 | Remover seed_db_from_csv | 🧹   | ✅ Done   | 🟢    | -     | P    |
+| T21 | Seed JSON (opcional)     | ✨   | 📋 Backlog| 🟡   | -     | M    |
 
 ════════════════════════════════════════════════════════════════════
 ```
@@ -371,7 +412,9 @@ Project starts 2026-02-12
 [T14] starts at [T13]'s end
 [T15: Demand] lasts 2 days
 [T15] starts at [T13]'s end
-[T16: Mosaico decisão] lasts 1 day
+[T16: Mosaico CRUD] lasts 3 days
+[T16b: Rodízio CRUD] lasts 2 days
+[T16b] starts at [T16]'s end
 [T16] starts at [T14]'s end
 
 @endgantt
@@ -385,7 +428,7 @@ Project starts 2026-02-12
 M1: Limpeza + Layout (T0, T1–T4) — identidade visual
 M2: Escala completa (T5–T9) — grid + tabela + tradução
 M3: Resiliência (T10–T12) — API status + retry + loading
-M4: Configuração (T13–T16) — Turnos, Exceções, Demand
+M4: Configuração (T13–T16b) — Turnos, Exceções, Demand, Mosaico, Rodízio
 ```
 
 ---
@@ -400,7 +443,7 @@ M4: Configuração (T13–T16) — Turnos, Exceções, Demand
 [2026-02-12] INÍCIO
 └── Guerra iniciada: Escala Caixa Electron
     Objetivo: Layout + Escala grid + Resiliência + Config
-    Spec: ANALYST_REVISAO_ELECTRON_ESCALA_CAIXA.md
+    Spec: SISTEMA_ESCALAFLOW.md + BUILD
     Backlog: 17 tasks
 
 [2026-02-12] CHORE ✅
@@ -416,6 +459,19 @@ M4: Configuração (T13–T16) — Turnos, Exceções, Demand
     main com max-w-6xl mx-auto
 └── T4: Hierarquia tipográfica — CONCLUÍDO
     h1 text-2xl font-semibold em todas as páginas
+
+[2026-02-12] ESCALA ✅
+└── T5: Vista Calendário grid — CONCLUÍDO
+    Grid dia×colaborador, células coloridas (verde/âmbar/azul/vermelho)
+└── T6: Tab Calendário + Tabela — CONCLUÍDO
+    Calendário como default, Tabela na segunda aba
+
+[2026-02-12] MANUTENÇÃO ✅
+└── T17: Unificar docs → SISTEMA_ESCALAFLOW.md
+    Consolida FLUXO_USUARIO + DADOS + resumo BUILD
+└── T18: Remover docs antigos (ANALYST, AUDITORIA, DADOS)
+└── T19: data/processed/ → .gitignore
+└── T20: Remover seed_db_from_csv.py (redundante com seed.py)
 
 ════════════════════════════════════════════════════════════════════
 ```
@@ -447,11 +503,8 @@ NOVOS ITENS:
 
 | Doc | Conteúdo |
 |-----|----------|
-| FLUXO_USUARIO.md | Jornada do RH |
-| DADOS_E_REVISAO_SISTEMA.md | Fixtures, processados, gaps |
-| ANALYST_REVISAO_ELECTRON_ESCALA_CAIXA.md | Gaps, layout, roadmap |
-| AUDITORIA_PRE_NEXT.md | Endpoints API |
-| BUILD_ARQUITETURA_MOTOR_COMPLIANCE_ESCALA_CAIXA.md | Motor de compliance |
+| **SISTEMA_ESCALAFLOW.md** | **Doc unificado:** fluxo, dados, setup, arquitetura resumida |
+| BUILD_ARQUITETURA_MOTOR_COMPLIANCE_ESCALA_CAIXA.md | Motor de compliance (PlantUML, ER, fluxos) |
 
 ---
 
@@ -464,8 +517,8 @@ NOVOS ITENS:
 | T2 | Nav ativo: bg-amber-600 ou amber-600/90 |
 | T3 | ✅ Main: max-w-6xl mx-auto no container |
 | T4 | ✅ H1 text-2xl font-semibold em páginas |
-| T5 | Grid: linhas=datas, colunas=colaboradores, célula=status |
-| T6 | Tabs: Calendário (default) + Tabela |
+| T5 | ✅ Grid: linhas=datas, colunas=colaboradores, célula=status colorido |
+| T6 | ✅ Tabs: Calendário (default) + Tabela |
 | T7 | WORK→Trabalho, FOLGA→Folga, ABSENCE→Ausência |
 | T8 | Células: verde work, âmbar folga, azul DOM, vermelho ausência |
 | T9 | Tabela com paginação (ex: 20 por página) |
@@ -475,4 +528,10 @@ NOVOS ITENS:
 | T13 | GET /shifts → tabela turnos |
 | T14 | GET/POST /exceptions → listar + form adicionar |
 | T15 | GET/POST /demand-profile → listar + form adicionar |
-| T16 | Tab Mosaico/Rodízio: conteúdo ou remover |
+| T16 | Mosaico: matriz colaborador×dia→turno (API + UI) |
+| T16b | Rodízio: domingos + folga compensatória (API + UI) |
+| T17 | ✅ SISTEMA_ESCALAFLOW.md criado |
+| T18 | ✅ ANALYST, AUDITORIA, DADOS removidos |
+| T19 | ✅ data/processed/ no .gitignore |
+| T20 | ✅ seed_db_from_csv.py removido |
+| T21 | Migrar fixtures para seed.json único |

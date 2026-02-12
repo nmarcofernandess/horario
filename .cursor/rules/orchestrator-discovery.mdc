@@ -1,0 +1,105 @@
+---
+description: "Execute quando: orchestrator-discovery, discovery phase, executar discovery. Analisa codebase e escreve discovery.json."
+globs: specs/**/*
+alwaysApply: false
+---
+
+# Discovery Agent (File-Based)
+
+**Role:** Analyze codebase and write structured findings to `discovery.json`.
+
+---
+
+## CONTRATO DE ARQUIVOS
+
+### Arquivos que LEI
+```
+specs/[task-folder]/PRD.md          # FONTE DA VERDADE - task completa (REQUIRED)
+specs/[task-folder]/status.json     # Current status (verify discovery is pending)
+```
+
+### Arquivos que ESCREVO
+```
+specs/[task-folder]/discovery.json  # Meu output principal
+specs/[task-folder]/status.json     # Atualizar phases.discovery
+specs/[task-folder]/progress.md     # Append log de progresso
+```
+
+---
+
+## INSTRUÇÕES
+
+### Step 1: Ler PRD.md (FONTE DA VERDADE)
+
+Extrair: Visão Geral, Workflow type, Requisitos Funcionais, Critérios de Aceitação, Constraints, Serviços Envolvidos.
+
+**IMPORTANTE:** PRD.md contém a task COMPLETA. Pode ter 10 linhas ou 1000 linhas. Trate TUDO como relevante.
+
+### Step 2: Explorar o Codebase
+
+Usar Glob, Grep, Read para:
+- Encontrar arquivos relevantes
+- Buscar código relacionado
+- Ler arquivos importantes
+
+Procurar: arquivos que precisam ser modificados, padrões existentes, implementações similares.
+
+### Step 3: Identificar Padrões
+
+Documentar: convenções de nomenclatura, organização de código, padrões de API, error handling.
+
+### Step 4: Escrever discovery.json
+
+```json
+{
+  "status": "complete",
+  "findings": {
+    "relevant_files": ["path/to/file1.ts", "path/to/file2.ts"],
+    "patterns": ["Pattern 1: Descrição", "Pattern 2: Descrição"],
+    "approach": "Abordagem recomendada em 2-3 frases",
+    "risks": ["Risk 1", "Risk 2"],
+    "dependencies": ["Dependency 1", "Dependency 2"]
+  },
+  "completed_at": "[ISO timestamp]"
+}
+```
+
+### Step 5: Atualizar status.json
+
+```json
+{
+  "current_phase": "plan",
+  "phases": { "discovery": "complete", "plan": "pending" },
+  "updated_at": "[ISO timestamp]"
+}
+```
+
+### Step 6: Append em progress.md
+
+```markdown
+---
+
+## Phase: Discovery
+**Status:** Complete
+**Completed At:** [timestamp]
+
+### Findings Summary
+- Files identified: [N]
+- Patterns found: [list briefly]
+- Recommended approach: [1 sentence]
+- Risks identified: [N]
+
+---
+```
+
+---
+
+## REGRAS
+
+1. **Ler PRD.md primeiro** — Entender a task antes de explorar
+2. **Ser thorough** — Ler código real, não assumir
+3. **Focar em relevantes** — Não listar tudo, só o que importa
+4. **Patterns over details** — Identificar COMO o código é escrito
+5. **Risks são importantes** — Notar edge cases, breaking changes
+6. **Sempre escrever arquivos** — Não retornar JSON, ESCREVER em arquivo
+7. **Atualizar status.json** — Marcar discovery como complete

@@ -1,0 +1,83 @@
+---
+description: "Execute quando: orchestrator, orchestrate, workflow ORCHESTRATE. Índice do pipeline de agentes."
+globs: specs/**/*
+alwaysApply: false
+---
+
+# ORCHESTRATE — Índice de Agentes
+
+Pipeline de agentes para tasks estruturadas. **No Cursor** não há `Task()` — invoque cada fase manualmente.
+
+---
+
+## FLUXO STANDARD
+
+```
+Gathering → Discovery → Plan → Code → Build → QA [→ Fix loop]
+```
+
+## FLUXO COMPLEX
+
+```
+Gathering → Discovery → Research → Plan → Critic → Code → Build → QA [→ Fix loop]
+```
+
+---
+
+## REGRAS POR FASE
+
+| Fase | Rule | Quando invocar |
+|------|------|----------------|
+| **Gathering** | `orchestrator-gather` | "gather PRD", "criar PRD", "gathering phase" |
+| **Discovery** | `orchestrator-discovery` | "discovery", "executar discovery" |
+| **Research** | `orchestrator-research` | "research", "executar research" (só COMPLEX) |
+| **Plan** | `orchestrator-plan` | "plan", "criar plano", "executar plan" |
+| **Critic** | `orchestrator-critic` | "critic", "validar plano" (só COMPLEX) |
+| **Code** | `orchestrator-code` | "implementar subtask X", "code", "executar subtask 1-1" |
+| **QA** | `orchestrator-qa` | "qa", "executar qa", "revisar implementação" |
+| **Fix** | `orchestrator-fix` | "fix", "corrigir issues do QA" |
+
+---
+
+## COMO USAR NO CURSOR
+
+### Exemplo: implementar próxima subtask do spec 001
+
+> "Implemente a próxima subtask do specs/001-escala-electron-backlog. Siga o orchestrator-code."
+
+### Exemplo: executar discovery
+
+> "Execute o discovery para specs/001-escala-electron-backlog. Siga o orchestrator-discovery."
+
+### Exemplo: criar plano
+
+> "Crie o implementation_plan para specs/001-escala-electron-backlog. Siga o orchestrator-plan."
+
+---
+
+## ARQUIVOS DO PIPELINE
+
+```
+specs/[NNN-slug]/
+├── PRD.md                 ← [GATHERING] FONTE DA VERDADE
+├── status.json            ← Estado atual
+├── progress.md            ← Log humano-legível
+├── discovery.json         ← [DISCOVERY]
+├── research.json          ← [RESEARCH] (só COMPLEX)
+├── implementation_plan.json ← [PLAN]
+├── critique.json          ← [CRITIC] (só COMPLEX)
+├── implementation_log.json ← [CODE]
+├── qa_report.json         ← [QA]
+└── fix_log.json           ← [FIX]
+```
+
+---
+
+## ORDEM PARA SPEC 001
+
+1. `orchestrator-discovery` — já executado
+2. `orchestrator-plan` — já executado
+3. `orchestrator-code` — implementar subtask 1-1, 1-2, ...
+4. Build (manual: `npm run build`, `npx tsc --noEmit`)
+5. `orchestrator-qa`
+6. Se NEEDS_FIXES → `orchestrator-fix` → voltar ao QA

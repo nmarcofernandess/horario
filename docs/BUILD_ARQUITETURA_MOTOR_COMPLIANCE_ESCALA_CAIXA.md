@@ -111,7 +111,7 @@ UC5 ..> UC6 : <<include>>
 skinparam componentStyle rectangle
 
 package "Presentation" {
-  [Streamlit UI]
+  [Electron/React UI]
 }
 
 package "Application Layer" {
@@ -137,7 +137,7 @@ package "Infrastructure Layer" {
 database "Processed CSV/JSON" as DataLake
 database "Policy JSON" as PolicyStore
 
-[Streamlit UI] --> [Validation Orchestrator]
+[Electron/React UI] --> [Validation Orchestrator]
 [Validation Orchestrator] --> [PDF/XLSX Parsers]
 [Validation Orchestrator] --> [Dataset Repository]
 [Validation Orchestrator] --> [Preference Repository]
@@ -164,7 +164,7 @@ database "Policy JSON" as PolicyStore
 ```plantuml
 @startuml
 actor "Gestora" as G
-participant "Streamlit UI" as UI
+participant "Electron/React UI" as UI
 participant "Validation Orchestrator" as ORQ
 participant "Dataset Repository" as REPO
 participant "Policy Repository" as PRepo
@@ -223,7 +223,7 @@ stop
 ```plantuml
 @startuml
 actor "RH" as RH
-participant "Streamlit UI" as UI
+participant "Electron/React UI" as UI
 participant "Policy Engine" as PE
 participant "Suggestion Engine" as SE
 participant "Week View Engine" as WV
@@ -275,7 +275,7 @@ stop
 @startuml
 actor "Colaborador" as C
 actor "RH" as RH
-participant "Streamlit UI" as UI
+participant "Electron/React UI" as UI
 participant "Preference Engine" as PREF
 participant "Policy Engine" as PE
 
@@ -559,10 +559,8 @@ horario/
 |-- scripts/
 |   `-- seed.py
 |-- data/
-|   |-- fixtures/          # CSVs mínimos para seed
-|   |   |-- pdf_rita1_slots.csv
-|   |   |-- pdf_rita_sunday_rotation.csv
-|   |   `-- pdf_rita1_shift_catalog_by_day.csv
+|   |-- fixtures/          # Seed canônico único
+|   |   `-- seed_supermercado_fernandes.json
 |   `-- processed/        # Saída da validação (gerado em runtime)
 |-- docs/
 |   `-- BUILD_ARQUITETURA_MOTOR_COMPLIANCE_ESCALA_CAIXA.md
@@ -607,9 +605,7 @@ horario/
 - Schema de politica e o contrato central para previsibilidade de execucao.
 
 ### Documentos de suporte
-- **DADOS_E_REVISAO_SISTEMA.md**: Interpretacao dos fixtures (dados "jogados" do Excel), semantica de cada arquivo, gaps e revisao de coerencia.
-- **FLUXO_USUARIO.md**: Fluxo completo para o usuario final (RH) com termos polidos.
-- **AUDITORIA_PRE_NEXT.md**: Double-check e especificacao para migracao Next.js (modelo, APIs, bugs conhecidos).
+- **SISTEMA_ESCALAFLOW.md**: Doc unificado — fluxo do usuario, fixtures, processados, setup, arquitetura resumida.
 
 ### Checklist de implementacao (ordem obrigatoria)
 

@@ -7,8 +7,26 @@ alwaysApply: true
 
 Sempre que terminar um ajuste que exija recarregar o dev server (ex.: mudanças em configuração, dependências, Vite, Electron, variáveis de ambiente), execute o restart automaticamente:
 
-- **Electron app** (`electron-app/`): `npm run dev` (ou reiniciar o processo em background)
-- **Streamlit** (`app.py`): reiniciar o processo
-- **API** (`api/`): reiniciar o servidor
+- **Electron app** (`apps/frontend/`): `npm run electron` (ou reiniciar o processo em background)
+- **API** (`npm run api` em apps/frontend): reiniciar o servidor
 
 Não espere o usuário pedir — faça o restart ao concluir o ajuste.
+
+---
+
+## Antes de rodar: matar processos órfãos
+
+**Problema:** Múltiplas instâncias de Electron (ou API) podem ficar rodando — cada `npm run electron` abre nova janela, acumulando no dock.
+
+**Regra:** Antes de rodar `npm run electron` ou `npm run api`, verificar se já estão rodando e dar kill se necessário:
+
+```bash
+# Ver processos Electron/Node que usam as portas
+lsof -i :8000   # API
+pkill -f "electron"   # Mata processos Electron
+pkill -f "uvicorn"    # Mata API (se rodando via uvicorn)
+```
+
+Ou: `ps aux | grep -E "electron|uvicorn"` para listar, depois `kill <PID>`.
+
+Depois de matar, rodar de novo.

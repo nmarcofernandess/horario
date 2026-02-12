@@ -9,7 +9,9 @@
     "city_name": "Maringa",
     "sector": "Comercio varejista",
     "cnae": "4711-3/02",
-    "collective_agreement_id": "CCT_CAIXA_2026_PLACEHOLDER"
+    "collective_agreement_id": "CCT_SUPERMERCADO_FERNANDES_PR_2026H1_DRAFT",
+    "legal_validation_note": "Preset Fernandes com base operacional; validacao juridica final ainda pendente.",
+    "sunday_holiday_legal_validated": false
   },
   "validity": {
     "effective_from": "2026-02-01",
@@ -71,12 +73,12 @@
       {
         "type": "FIXED_CONSTRAINT",
         "weight": 1000,
-        "description": "Compromissos inadiaveis (Igreja, Faculdade)"
+        "description": "Lei e disponibilidade pactuada"
       },
       {
         "type": "MANUAL_OVERRIDE",
         "weight": 500,
-        "description": "Ordem manual do RH (Fator Cleonice)"
+        "description": "Senioridade e acordos de loja (fator Cleonice)"
       }
     ]
   },
@@ -238,6 +240,8 @@
   "constraints": {
     "max_consecutive_work_days": 6,
     "min_intershift_rest_minutes": 660,
+    "max_daily_minutes_operational": 585,
+    "max_daily_minutes_hard": 600,
     "require_rest_in_any_7_day_window": true,
     "enforce_weekly_contract_minutes": true,
     "weekly_minutes_tolerance": 30,
@@ -248,8 +252,8 @@
       "6"
     ],
     "marker_semantics": {
-      "5": "UNKNOWN",
-      "6": "UNKNOWN"
+      "5": "COMPENSA_48H",
+      "6": "ESCALA_6X1"
     }
   },
   "legal_references": [

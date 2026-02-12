@@ -1,0 +1,154 @@
+{
+  "feature": "Layout e shadcn: ajustes e otimizações",
+  "workflow_type": "refactor",
+  "phases": [
+    {
+      "id": "phase-1",
+      "name": "UI components — Slot congruente",
+      "subtasks": [
+        {
+          "id": "subtask-1-1",
+          "description": "Unificar Slot: button, badge, breadcrumb, sidebar usam @radix-ui/react-slot + Slot (não Slot.Root)",
+          "files_to_modify": [
+            "apps/frontend/src/renderer/components/ui/button.tsx",
+            "apps/frontend/src/renderer/components/ui/badge.tsx",
+            "apps/frontend/src/renderer/components/ui/breadcrumb.tsx",
+            "apps/frontend/src/renderer/components/ui/sidebar.tsx"
+          ],
+          "verification": {
+            "type": "typecheck",
+            "command": "cd apps/frontend && npx tsc --noEmit",
+            "expected": "No errors"
+          },
+          "status": "pending"
+        }
+      ]
+    },
+    {
+      "id": "phase-2",
+      "name": "Layout — BreadcrumbLink",
+      "subtasks": [
+        {
+          "id": "subtask-2-1",
+          "description": "Corrigir BreadcrumbLink: usar asChild + Button (role=button) em vez de href='#' + onClick preventDefault",
+          "files_to_modify": [
+            "apps/frontend/src/renderer/components/Layout.tsx"
+          ],
+          "verification": {
+            "type": "manual",
+            "note": "Clicar em EscalaFlow no breadcrumb navega para escala; sem href='#'"
+          },
+          "status": "pending"
+        }
+      ]
+    },
+    {
+      "id": "phase-3",
+      "name": "Forms — Select e Label",
+      "subtasks": [
+        {
+          "id": "subtask-3-1",
+          "description": "ColaboradoresPage: substituir select nativo (contrato) por Select; usar Label + htmlFor em todos os campos do form colaborador e setor",
+          "files_to_modify": [
+            "apps/frontend/src/renderer/pages/ColaboradoresPage.tsx"
+          ],
+          "verification": {
+            "type": "manual",
+            "note": "Form contrato usa Select; labels com htmlFor; forms funcionam"
+          },
+          "status": "pending"
+        },
+        {
+          "id": "subtask-3-3",
+          "description": "PedidosPage: substituir select (request_type) por Select; usar Label + htmlFor",
+          "files_to_modify": [
+            "apps/frontend/src/renderer/pages/PedidosPage.tsx"
+          ],
+          "verification": {
+            "type": "manual",
+            "note": "Tipo pedido usa Select; labels com htmlFor"
+          },
+          "status": "pending"
+        }
+      ]
+    },
+    {
+      "id": "phase-4",
+      "name": "EscalaPage — CellStatus e Calendário",
+      "subtasks": [
+        {
+          "id": "subtask-4-1",
+          "description": "CellStatus usar cn() em vez de array.join() para classes",
+          "files_to_modify": [
+            "apps/frontend/src/renderer/pages/EscalaPage.tsx"
+          ],
+          "verification": {
+            "type": "manual",
+            "note": "Células de status exibem cores corretas"
+          },
+          "status": "pending"
+        },
+        {
+          "id": "subtask-4-2",
+          "description": "Tab Calendário: usar Table/TableHeader/TableBody/TableRow/TableCell em vez de table raw",
+          "files_to_modify": [
+            "apps/frontend/src/renderer/pages/EscalaPage.tsx"
+          ],
+          "verification": {
+            "type": "manual",
+            "note": "Calendário renderiza grid igual; usa componentes shadcn"
+          },
+          "status": "pending"
+        }
+      ]
+    },
+    {
+      "id": "phase-5",
+      "name": "ConfiguracaoPage — AlertDialog",
+      "subtasks": [
+        {
+          "id": "subtask-5-1",
+          "description": "Substituir confirm() por AlertDialog em: clearTemplateAll, handleDeleteShift, handleDeleteException, handleDeleteDemand, handleDeleteRotation",
+          "files_to_modify": [
+            "apps/frontend/src/renderer/pages/ConfiguracaoPage.tsx"
+          ],
+          "verification": {
+            "type": "manual",
+            "note": "Cada ação destrutiva abre AlertDialog; Ok confirma, Cancel cancela"
+          },
+          "status": "pending"
+        }
+      ]
+    },
+    {
+      "id": "phase-6",
+      "name": "CSS cleanup",
+      "subtasks": [
+        {
+          "id": "subtask-6-1",
+          "description": "Remover CSS boilerplate não usado em App.css (.logo, .card, .read-the-docs, etc)",
+          "files_to_modify": [
+            "apps/frontend/src/renderer/App.css"
+          ],
+          "verification": {
+            "type": "manual",
+            "note": "App visual idêntico; #root height/width mantidos"
+          },
+          "status": "pending"
+        },
+        {
+          "id": "subtask-6-2",
+          "description": "Remover @layer base duplicado em index.css (linhas 124-131)",
+          "files_to_modify": [
+            "apps/frontend/src/renderer/index.css"
+          ],
+          "verification": {
+            "type": "manual",
+            "note": "Tema e estilos base funcionam"
+          },
+          "status": "pending"
+        }
+      ]
+    }
+  ]
+}

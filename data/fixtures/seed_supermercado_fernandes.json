@@ -1,0 +1,253 @@
+{
+  "metadata": {
+    "seed_id": "supermercado_fernandes_caixa_v1",
+    "description": "Preset operacional do piloto Caixa para testes locais.",
+    "source_documents": [
+      "docs/legacy/TRANSCRICAO_AUDIOS_2026-02-11.md",
+      "docs/legacy/REDPILL_LEIS_LOGICA_HUMANA_ESCALA.md",
+      "docs/legacy/PRD_001_escala_electron_backlog_legacy.md"
+    ],
+    "notes": [
+      "Seed acelera homologacao e nao substitui CRUD/configuracao da UI.",
+      "Dados de governanca legal permanecem editaveis na aba Governanca E4."
+    ]
+  },
+  "governance_policy_patch": {
+    "jurisdiction": {
+      "collective_agreement_id": "CCT_SUPERMERCADO_FERNANDES_PR_2026H1_DRAFT",
+      "legal_validation_note": "Preset Fernandes com base operacional; validacao juridica final ainda pendente.",
+      "sunday_holiday_legal_validated": false
+    },
+    "constraints": {
+      "max_consecutive_work_days": 6,
+      "min_intershift_rest_minutes": 660,
+      "max_daily_minutes_operational": 585,
+      "max_daily_minutes_hard": 600,
+      "weekly_minutes_tolerance": 30,
+      "marker_semantics": {
+        "5": "COMPENSA_48H",
+        "6": "ESCALA_6X1"
+      }
+    },
+    "picking_rules": {
+      "strategy": "MANUAL_RANK",
+      "criteria": [
+        {
+          "type": "FIXED_CONSTRAINT",
+          "weight": 1000,
+          "description": "Lei e disponibilidade pactuada"
+        },
+        {
+          "type": "MANUAL_OVERRIDE",
+          "weight": 500,
+          "description": "Senioridade e acordos de loja (fator Cleonice)"
+        }
+      ]
+    }
+  },
+  "sector": {
+    "sector_id": "CAIXA",
+    "name": "Caixa"
+  },
+  "contracts": [
+    {
+      "contract_code": "H44_CAIXA",
+      "weekly_minutes": 2640
+    },
+    {
+      "contract_code": "H36_CAIXA",
+      "weekly_minutes": 2160
+    },
+    {
+      "contract_code": "H30_CAIXA",
+      "weekly_minutes": 1800
+    }
+  ],
+  "employees": [
+    {
+      "employee_id": "CLEONICE",
+      "name": "Cleonice",
+      "contract_code": "H44_CAIXA",
+      "rank": 1,
+      "active": true,
+      "tags": [
+        "VIP_LEGACY",
+        "SENIORIDADE"
+      ]
+    },
+    {
+      "employee_id": "GABRIEL",
+      "name": "Gabriel",
+      "contract_code": "H36_CAIXA",
+      "rank": 2,
+      "active": true,
+      "tags": []
+    },
+    {
+      "employee_id": "ANA JULIA",
+      "name": "Ana Julia",
+      "contract_code": "H44_CAIXA",
+      "rank": 3,
+      "active": true,
+      "tags": []
+    },
+    {
+      "employee_id": "ALICE",
+      "name": "Alice",
+      "contract_code": "H30_CAIXA",
+      "rank": 4,
+      "active": true,
+      "tags": []
+    },
+    {
+      "employee_id": "MAYUMI",
+      "name": "Mayumi",
+      "contract_code": "H30_CAIXA",
+      "rank": 5,
+      "active": true,
+      "tags": []
+    },
+    {
+      "employee_id": "HELOISA",
+      "name": "Heloisa",
+      "contract_code": "H30_CAIXA",
+      "rank": 6,
+      "active": true,
+      "tags": []
+    }
+  ],
+  "shifts": [
+    {
+      "shift_code": "CAI1",
+      "minutes": 570,
+      "day_scope": "WEEKDAY"
+    },
+    {
+      "shift_code": "CAI2",
+      "minutes": 540,
+      "day_scope": "WEEKDAY"
+    },
+    {
+      "shift_code": "CAI3",
+      "minutes": 510,
+      "day_scope": "WEEKDAY"
+    },
+    {
+      "shift_code": "CAI4",
+      "minutes": 480,
+      "day_scope": "WEEKDAY"
+    },
+    {
+      "shift_code": "CAI5",
+      "minutes": 450,
+      "day_scope": "WEEKDAY"
+    },
+    {
+      "shift_code": "CAI6",
+      "minutes": 420,
+      "day_scope": "WEEKDAY"
+    },
+    {
+      "shift_code": "DOM_08_12_30",
+      "minutes": 270,
+      "day_scope": "SUNDAY"
+    }
+  ],
+  "weekday_template": [
+    { "employee_id": "CLEONICE", "day_key": "SEG", "shift_code": "CAI1", "minutes": 570 },
+    { "employee_id": "CLEONICE", "day_key": "TER", "shift_code": "CAI1", "minutes": 570 },
+    { "employee_id": "CLEONICE", "day_key": "QUA", "shift_code": "CAI1", "minutes": 570 },
+    { "employee_id": "CLEONICE", "day_key": "QUI", "shift_code": "CAI1", "minutes": 570 },
+    { "employee_id": "CLEONICE", "day_key": "SEX", "shift_code": "CAI1", "minutes": 570 },
+    { "employee_id": "CLEONICE", "day_key": "SAB", "shift_code": "CAI1", "minutes": 570 },
+
+    { "employee_id": "GABRIEL", "day_key": "SEG", "shift_code": "CAI2", "minutes": 540 },
+    { "employee_id": "GABRIEL", "day_key": "TER", "shift_code": "CAI2", "minutes": 540 },
+    { "employee_id": "GABRIEL", "day_key": "QUA", "shift_code": "CAI2", "minutes": 540 },
+    { "employee_id": "GABRIEL", "day_key": "QUI", "shift_code": "CAI2", "minutes": 540 },
+    { "employee_id": "GABRIEL", "day_key": "SEX", "shift_code": "CAI2", "minutes": 540 },
+    { "employee_id": "GABRIEL", "day_key": "SAB", "shift_code": "CAI2", "minutes": 540 },
+
+    { "employee_id": "ANA JULIA", "day_key": "SEG", "shift_code": "CAI3", "minutes": 510 },
+    { "employee_id": "ANA JULIA", "day_key": "TER", "shift_code": "CAI3", "minutes": 510 },
+    { "employee_id": "ANA JULIA", "day_key": "QUA", "shift_code": "CAI3", "minutes": 510 },
+    { "employee_id": "ANA JULIA", "day_key": "QUI", "shift_code": "CAI3", "minutes": 510 },
+    { "employee_id": "ANA JULIA", "day_key": "SEX", "shift_code": "CAI3", "minutes": 510 },
+    { "employee_id": "ANA JULIA", "day_key": "SAB", "shift_code": "CAI3", "minutes": 510 },
+
+    { "employee_id": "ALICE", "day_key": "SEG", "shift_code": "CAI5", "minutes": 450 },
+    { "employee_id": "ALICE", "day_key": "TER", "shift_code": "CAI5", "minutes": 450 },
+    { "employee_id": "ALICE", "day_key": "QUA", "shift_code": "CAI5", "minutes": 450 },
+    { "employee_id": "ALICE", "day_key": "QUI", "shift_code": "CAI5", "minutes": 450 },
+    { "employee_id": "ALICE", "day_key": "SEX", "shift_code": "CAI5", "minutes": 450 },
+    { "employee_id": "ALICE", "day_key": "SAB", "shift_code": "CAI5", "minutes": 450 },
+
+    { "employee_id": "MAYUMI", "day_key": "SEG", "shift_code": "CAI4", "minutes": 480 },
+    { "employee_id": "MAYUMI", "day_key": "TER", "shift_code": "CAI4", "minutes": 480 },
+    { "employee_id": "MAYUMI", "day_key": "QUA", "shift_code": "CAI4", "minutes": 480 },
+    { "employee_id": "MAYUMI", "day_key": "QUI", "shift_code": "CAI4", "minutes": 480 },
+    { "employee_id": "MAYUMI", "day_key": "SEX", "shift_code": "CAI4", "minutes": 480 },
+    { "employee_id": "MAYUMI", "day_key": "SAB", "shift_code": "CAI4", "minutes": 480 },
+
+    { "employee_id": "HELOISA", "day_key": "SEG", "shift_code": "CAI6", "minutes": 420 },
+    { "employee_id": "HELOISA", "day_key": "TER", "shift_code": "CAI6", "minutes": 420 },
+    { "employee_id": "HELOISA", "day_key": "QUA", "shift_code": "CAI6", "minutes": 420 },
+    { "employee_id": "HELOISA", "day_key": "QUI", "shift_code": "CAI6", "minutes": 420 },
+    { "employee_id": "HELOISA", "day_key": "SEX", "shift_code": "CAI6", "minutes": 420 },
+    { "employee_id": "HELOISA", "day_key": "SAB", "shift_code": "CAI6", "minutes": 420 }
+  ],
+  "sunday_rotation": [
+    { "scale_index": 1, "employee_id": "CLEONICE", "sunday_date": "2026-02-08", "folga_date": "2026-02-14" },
+    { "scale_index": 1, "employee_id": "GABRIEL", "sunday_date": "2026-02-08", "folga_date": "2026-02-10" },
+    { "scale_index": 1, "employee_id": "ALICE", "sunday_date": "2026-02-08", "folga_date": "2026-02-12" },
+
+    { "scale_index": 2, "employee_id": "GABRIEL", "sunday_date": "2026-02-15", "folga_date": "2026-02-17" },
+    { "scale_index": 2, "employee_id": "ANA JULIA", "sunday_date": "2026-02-15", "folga_date": "2026-02-16" },
+    { "scale_index": 2, "employee_id": "MAYUMI", "sunday_date": "2026-02-15", "folga_date": "2026-02-18" },
+
+    { "scale_index": 3, "employee_id": "ALICE", "sunday_date": "2026-02-22", "folga_date": "2026-02-26" },
+    { "scale_index": 3, "employee_id": "MAYUMI", "sunday_date": "2026-02-22", "folga_date": "2026-02-25" },
+    { "scale_index": 3, "employee_id": "HELOISA", "sunday_date": "2026-02-22", "folga_date": "2026-02-27" },
+
+    { "scale_index": 4, "employee_id": "GABRIEL", "sunday_date": "2026-03-01", "folga_date": "2026-03-03" },
+    { "scale_index": 4, "employee_id": "ANA JULIA", "sunday_date": "2026-03-01", "folga_date": "2026-03-02" },
+    { "scale_index": 4, "employee_id": "HELOISA", "sunday_date": "2026-03-01", "folga_date": "2026-03-06" },
+
+    { "scale_index": 5, "employee_id": "CLEONICE", "sunday_date": "2026-03-08", "folga_date": "2026-03-14" },
+    { "scale_index": 5, "employee_id": "ALICE", "sunday_date": "2026-03-08", "folga_date": "2026-03-12" },
+    { "scale_index": 5, "employee_id": "MAYUMI", "sunday_date": "2026-03-08", "folga_date": "2026-03-11" },
+
+    { "scale_index": 6, "employee_id": "ANA JULIA", "sunday_date": "2026-03-15", "folga_date": "2026-03-16" },
+    { "scale_index": 6, "employee_id": "ALICE", "sunday_date": "2026-03-15", "folga_date": "2026-03-19" },
+    { "scale_index": 6, "employee_id": "HELOISA", "sunday_date": "2026-03-15", "folga_date": "2026-03-20" },
+
+    { "scale_index": 7, "employee_id": "GABRIEL", "sunday_date": "2026-03-22", "folga_date": "2026-03-24" },
+    { "scale_index": 7, "employee_id": "ANA JULIA", "sunday_date": "2026-03-22", "folga_date": "2026-03-23" },
+    { "scale_index": 7, "employee_id": "MAYUMI", "sunday_date": "2026-03-22", "folga_date": "2026-03-25" },
+
+    { "scale_index": 8, "employee_id": "ALICE", "sunday_date": "2026-03-29", "folga_date": "2026-04-02" },
+    { "scale_index": 8, "employee_id": "MAYUMI", "sunday_date": "2026-03-29", "folga_date": "2026-04-01" },
+    { "scale_index": 8, "employee_id": "HELOISA", "sunday_date": "2026-03-29", "folga_date": "2026-04-03" }
+  ],
+  "preference_requests": [
+    {
+      "request_id": "PREF-DEMO-001",
+      "employee_id": "CLEONICE",
+      "request_date": "2026-02-18",
+      "request_type": "FOLGA_ON_DATE",
+      "priority": "HIGH",
+      "target_shift_code": null,
+      "note": "Preferencia operacional de senioridade para teste do fluxo."
+    }
+  ],
+  "exceptions": [
+    {
+      "sector_id": "CAIXA",
+      "employee_id": "ANA JULIA",
+      "exception_date": "2026-02-20",
+      "exception_type": "BLOCK",
+      "note": "Bloqueio exemplo para teste de excecao."
+    }
+  ],
+  "demand_slots": []
+}

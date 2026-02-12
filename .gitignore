@@ -1,6 +1,94 @@
-.venv/
-__pycache__/
-*.pyc
+# ===========================
+# OS
+# ===========================
 .DS_Store
+.DS_Store?
+._*
+Thumbs.db
+
+# ===========================
+# Python
+# ===========================
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+eggs/
+.eggs/
+*.egg-info/
+*.egg
+MANIFEST
+
+# Virtual environments
+.venv/
+venv/
+.conda/
+
+# Testing
+.pytest_cache/
+.coverage
+htmlcov/
+.tox/
+.nox/
+coverage.xml
+*.cover
+*.py,cover
+
+# Type checking
+.mypy_cache/
+.dmypy.json
+dmypy.json
+
+# ===========================
+# Node.js (apps/frontend)
+# ===========================
+node_modules/
+.npm
+.yarn
+.pnp.*
+
+# Build output
+dist/
+out/
+*.tsbuildinfo
+
+# Cache
+.cache/
+.eslintcache
+.prettiercache
+
+# ===========================
+# Electron
+# ===========================
+*.asar
+*.blockmap
+*.snap
+*.dmg
+*.exe
+*.msi
+
+# ===========================
+# Dados locais
+# ===========================
 data/compliance_engine.db
-data/processed/node_modules/
+data/processed/
+
+# ===========================
+# IDE
+# ===========================
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# ===========================
+# Misc
+# ===========================
+*.log
+*.local
+*.bak
+*.tmp
+*.temp

@@ -1,0 +1,119 @@
+{
+  "status": "complete",
+  "findings": {
+    "relevant_files": [
+      "apps/frontend/src/renderer/App.tsx",
+      "apps/frontend/src/renderer/App.css",
+      "apps/frontend/src/renderer/index.css",
+      "apps/frontend/src/renderer/pages/EscalaPage.tsx",
+      "apps/frontend/src/renderer/pages/ColaboradoresPage.tsx",
+      "apps/frontend/src/renderer/pages/PedidosPage.tsx",
+      "apps/frontend/src/renderer/pages/ConfiguracaoPage.tsx",
+      "apps/frontend/src/renderer/pages/PerfilPage.tsx",
+      "apps/frontend/src/renderer/components/Layout.tsx",
+      "apps/frontend/src/renderer/components/ApiStatus.tsx",
+      "apps/frontend/src/renderer/components/ui/button.tsx",
+      "apps/frontend/src/renderer/components/ui/badge.tsx",
+      "apps/frontend/src/renderer/components/ui/select.tsx",
+      "apps/frontend/src/renderer/components/ui/label.tsx"
+    ],
+    "patterns": [
+      "Padrão shadcn: usar cn() para todas as classes condicionais — CellStatus em EscalaPage usa array.join() em vez de cn()",
+      "Padrão shadcn: forms com Label + htmlFor + id para acessibilidade — ColaboradoresPage e PedidosPage usam <label className='...'> sem Label nem htmlFor",
+      "Padrão shadcn: Select para dropdowns — ColaboradoresPage (contrato, setor) e PedidosPage (tipo pedido) usam <select> nativo com classes manuais",
+      "Padrão shadcn: Table para todas as tabelas — EscalaPage tab Calendário usa <table> raw com classes manuais em vez de Table/TableHeader/etc",
+      "Padrão shadcn: AlertDialog para confirmações — ConfiguracaoPage usa confirm() nativo em 4+ lugares (Limpar mosaico, Remover turno, Remover exceção, etc)",
+      "Padrão shadcn: BreadcrumbLink com navegação — Layout usa href='#' + onClick+preventDefault (anti-pattern); deveria usar asChild + Button ou role='button'",
+      "Padrão shadcn: import consistente — badge usa @radix-ui/react-slot; button, breadcrumb, sidebar usam radix-ui; Dialog e Select usam @radix-ui/react-*",
+      "Padrão shadcn: Slot.Root — Badge importa Slot de @radix-ui/react-slot e usa Slot.Root; nesse pacote Slot é o componente (não tem .Root). Outros usam radix-ui que tem Slot.Root. Risco: Badge com asChild=true pode quebrar",
+      "Padrão shadcn: CardHeader com CardDescription — Algumas páginas colocam descrição como <p> solto; CardDescription existe e deveria ser usado",
+      "Padrão shadcn: form com Field/FieldLabel/FieldError — Nenhum form usa react-hook-form ou o padrão Field da doc; tudo manual"
+    ],
+    "approach": "Priorizar: (1) corrigir Slot no Badge se asChild for usado; (2) substituir <select> nativo por Select em Colaboradores e Pedidos; (3) trocar confirm() por AlertDialog; (4) usar Label+htmlFor em todos os forms; (5) unificar imports radix (radix-ui ou @radix-ui/*); (6) CellStatus usar cn(); (7) remover App.css boilerplate e index.css duplicado.",
+    "risks": [
+      "Badge com asChild: Slot.Root pode ser undefined em @radix-ui/react-slot — verificar se Badge é usado com asChild",
+      "radix-ui vs @radix-ui/*: mistura pode causar bundle duplicado ou incompatibilidade em upgrades",
+      "BreadcrumbLink href='#': problemas de acessibilidade (screen readers) e SEO",
+      "confirm() síncrono: bloqueia UI; AlertDialog é assíncrono e mais acessível"
+    ],
+    "dependencies": [
+      "shadcn AlertDialog (já existe em ui/alert-dialog.tsx)",
+      "NativeSelect ou manter Select — Colaboradores/Pedidos têm selects simples; ConfiguracaoPage usa Select corretamente",
+      "react-hook-form + zod (opcional, para forms com validação)"
+    ],
+    "gaps_criticos": [
+      {
+        "arquivo": "apps/frontend/src/renderer/components/ui/badge.tsx",
+        "problema": "Slot.Root de @radix-ui/react-slot pode não existir; usar Slot ou importar de radix-ui",
+        "prioridade": "alta"
+      },
+      {
+        "arquivo": "apps/frontend/src/renderer/pages/ColaboradoresPage.tsx",
+        "problema": "select nativo em contrato e setores; usar shadcn Select",
+        "prioridade": "media"
+      },
+      {
+        "arquivo": "apps/frontend/src/renderer/pages/PedidosPage.tsx",
+        "problema": "select nativo em request_type; usar shadcn Select",
+        "prioridade": "media"
+      },
+      {
+        "arquivo": "apps/frontend/src/renderer/pages/EscalaPage.tsx",
+        "problema": "CellStatus usa array.join em vez de cn(); tab Calendário usa table raw",
+        "prioridade": "baixa"
+      },
+      {
+        "arquivo": "apps/frontend/src/renderer/components/Layout.tsx",
+        "problema": "BreadcrumbLink href='#' + onClick preventDefault",
+        "prioridade": "media"
+      },
+      {
+        "arquivo": "apps/frontend/src/renderer/pages/ConfiguracaoPage.tsx",
+        "problema": "confirm() nativo em 4+ lugares; usar AlertDialog",
+        "prioridade": "media"
+      },
+      {
+        "arquivo": "apps/frontend/src/renderer/App.css",
+        "problema": "CSS boilerplate Vite (.logo, .card) não usado",
+        "prioridade": "baixa"
+      },
+      {
+        "arquivo": "apps/frontend/src/renderer/index.css",
+        "problema": "@layer base duplicado (linhas 117–123 e 124–131)",
+        "prioridade": "baixa"
+      }
+    ],
+    "principio_congruencia": "App não importa Radix. Só usa @/components/ui/*. Os componentes ui/ encapsulam Radix e devem seguir o shadcn oficial exatamente (imports, estrutura). Quando precisar de algo custom: estender ou compor os componentes ui/, não importar Radix na app.",
+    "mudancas_sem_impacto_logica": [
+      {
+        "descricao": "Unificar Slot para padrão shadcn: @radix-ui/react-slot + Slot (não Slot.Root)",
+        "motivo": "Congruência com shadcn: app nunca importa Radix. Os ui/ encapsulam Radix e devem seguir o shadcn oficial. shadcn usa @radix-ui/react-slot + Slot (não Slot.Root). radix-ui (unified) tem API diferente — alinhar elimina drift e bugs.",
+        "mudancas": [
+          {
+            "arquivo": "apps/frontend/src/renderer/components/ui/button.tsx",
+            "de": "import { Slot } from \"radix-ui\"\nconst Comp = asChild ? Slot.Root : \"button\"",
+            "para": "import { Slot } from \"@radix-ui/react-slot\"\nconst Comp = asChild ? Slot : \"button\""
+          },
+          {
+            "arquivo": "apps/frontend/src/renderer/components/ui/badge.tsx",
+            "de": "const Comp = asChild ? Slot.Root : \"span\"",
+            "para": "const Comp = asChild ? Slot : \"span\""
+          },
+          {
+            "arquivo": "apps/frontend/src/renderer/components/ui/breadcrumb.tsx",
+            "de": "import { Slot } from \"radix-ui\"\nconst Comp = asChild ? Slot.Root : \"a\"",
+            "para": "import { Slot } from \"@radix-ui/react-slot\"\nconst Comp = asChild ? Slot : \"a\""
+          },
+          {
+            "arquivo": "apps/frontend/src/renderer/components/ui/sidebar.tsx",
+            "de": "import { Slot } from \"radix-ui\"\n... const Comp = asChild ? Slot.Root : \"...\"",
+            "para": "import { Slot } from \"@radix-ui/react-slot\"\n... const Comp = asChild ? Slot : \"...\"",
+            "nota": "5 ocorrências de Slot.Root no arquivo"
+          }
+        ],
+        "impacto": "Nenhum na lógica. Comportamento idêntico. Remove dependência de radix-ui para Slot (Sheet, Separator, etc continuam usando radix-ui)."
+      }
+    ]
+  },
+  "completed_at": "2026-02-12T00:00:00Z"
+}

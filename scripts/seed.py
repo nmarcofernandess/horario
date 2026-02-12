@@ -1,115 +1,157 @@
-"""
-Seed do banco a partir dos dados processados (fixtures).
-Extrai colaboradores, turnos, mosaico e rodízio de domingos.
-Formato agradável: nomes em maiúsculas, siglas, contratos legíveis.
-"""
+"""Seed canônico a partir de JSON único (preset Supermercado Fernandes)."""
+
+from __future__ import annotations
+
+import json
+from datetime import date
+from pathlib import Path
 
 import pandas as pd
-from pathlib import Path
-from src.infrastructure.database.setup import SessionLocal, init_db
-from src.infrastructure.repositories_db import SqlAlchemyRepository
-from src.infrastructure.parsers.legacy.csv_import import LegacyCSVImporter
-from src.domain.models import Employee
 
-# Alias para normalizar variantes de nome (ex: MAYUME -> MAYUMI)
-NAME_ALIASES = {"MAYUME": "MAYUMI", "MAYUMEI": "MAYUMI"}
-
-# Mapeamento nome cru -> formato agradável (titulo)
-def _nome_agradavel(nome: str) -> str:
-    """Converte ALICE -> Alice, ANA JULIA -> Ana Julia."""
-    if not nome or len(nome) < 2:
-        return nome
-    n = NAME_ALIASES.get(nome.upper(), nome.upper())
-    return " ".join(p.capitalize() for p in n.split())
+from apps.backend.src.domain.models import (
+    DemandSlot,
+    Employee,
+    ExceptionType,
+    PreferenceRequest,
+    RequestType,
+    ScheduleException,
+)
+from apps.backend.src.infrastructure.database.setup import SessionLocal, init_db
+from apps.backend.src.infrastructure.repositories_db import SqlAlchemyRepository
 
 
-def _sigla(nome: str) -> str:
-    """Gera sigla de 3 letras: ALICE -> ALI, ANA JULIA -> ANJ."""
-    n = nome.upper().replace(" ", "")
-    if len(n) <= 3:
-        return n
-    if "JULIA" in nome.upper():
-        return "ANJ"  # Ana Julia
-    return n[:3]
+ROOT = Path(__file__).resolve().parents[1]
+SEED_JSON_PATH = ROOT / "data" / "fixtures" / "seed_supermercado_fernandes.json"
+POLICY_PATH = ROOT / "schemas" / "compliance_policy.example.json"
 
 
-def seed_everything():
-    print("Populando banco a partir de data/fixtures/")
+def _load_seed_data(path: Path) -> dict:
+    if not path.exists():
+        raise FileNotFoundError(f"Seed JSON não encontrado: {path}")
+    return json.loads(path.read_text(encoding="utf-8"))
+
+
+def _apply_governance_policy_patch(seed_data: dict) -> None:
+    patch = seed_data.get("governance_policy_patch", {})
+    if not patch:
+        return
+    policy_data = json.loads(POLICY_PATH.read_text(encoding="utf-8"))
+
+    for section in ("jurisdiction", "constraints", "picking_rules"):
+        incoming = patch.get(section)
+        if not isinstance(incoming, dict):
+            continue
+        base = policy_data.setdefault(section, {})
+        if isinstance(base, dict):
+            base.update(incoming)
+        else:
+            policy_data[section] = incoming
+
+    POLICY_PATH.write_text(
+        json.dumps(policy_data, ensure_ascii=False, indent=2) + "\n",
+        encoding="utf-8",
+    )
+
+
+def seed_everything(seed_path: Path = SEED_JSON_PATH) -> None:
+    seed_data = _load_seed_data(seed_path)
+    print(f"Populando banco a partir de JSON único: {seed_path}")
     init_db()
     session = SessionLocal()
     repo = SqlAlchemyRepository(session)
 
-    DATA_DIR = Path(__file__).resolve().parents[1] / "data" / "fixtures"
-    importer = LegacyCSVImporter(DATA_DIR)
+    try:
+        sector = seed_data["sector"]
+        sector_id = str(sector["sector_id"])
+        repo.add_sector(sector_id, str(sector["name"]))
 
-    # 1. Setores e Contratos
-    print("- Setores e contratos...")
-    repo.add_sector("CAIXA", "Caixa")
-    for code, mins in [("H44_CAIXA", 2640), ("H36_CAIXA", 2160), ("H30_CAIXA", 1800), ("CLT_44H", 2640)]:
-        repo.add_contract(code, "CAIXA", mins)
+        print("- Contratos...")
+        for contract in seed_data.get("contracts", []):
+            repo.add_contract(
+                str(contract["contract_code"]),
+                sector_id,
+                int(contract["weekly_minutes"]),
+            )
 
-    # 2. Colaboradores (slots + rotação, formato agradável)
-    print("- Colaboradores...")
-    df_slots = importer.load_base_slots()
-    df_rot = importer.load_sunday_rotation()
+        print("- Colaboradores...")
+        for employee in seed_data.get("employees", []):
+            repo.add_employee(
+                Employee(
+                    employee_id=str(employee["employee_id"]).upper(),
+                    name=str(employee["name"]),
+                    contract_code=str(employee["contract_code"]),
+                    sector_id=sector_id,
+                    rank=int(employee.get("rank", 99)),
+                    tags=[str(tag) for tag in employee.get("tags", [])],
+                    active=bool(employee.get("active", True)),
+                )
+            )
 
-    unique_raw = set()
-    if not df_slots.empty:
-        unique_raw.update(df_slots["employee_id"].dropna().astype(str).str.strip().unique().tolist())
-    if not df_rot.empty and "employee_id" in df_rot.columns:
-        unique_raw.update(df_rot["employee_id"].dropna().astype(str).str.strip().unique().tolist())
+        print("- Turnos...")
+        shifts_df = pd.DataFrame(seed_data.get("shifts", []))
+        if not shifts_df.empty:
+            repo.save_shifts(shifts_df, sector_id=sector_id)
 
-    # Normalizar aliases e ordenar
-    seen = set()
-    for raw in sorted(unique_raw):
-        if not raw or len(raw) < 2:
-            continue
-        canônico = NAME_ALIASES.get(raw.upper(), raw.upper())
-        if canônico in seen:
-            continue
-        seen.add(canônico)
+        print("- Mosaico semanal...")
+        template_df = pd.DataFrame(seed_data.get("weekday_template", []))
+        if not template_df.empty:
+            repo.save_weekday_template(template_df, sector_id=sector_id)
 
-        nome = _nome_agradavel(canônico)
-        repo.add_employee(Employee(
-            employee_id=canônico,
-            name=nome,
-            contract_code="H44_CAIXA",
-            sector_id="CAIXA",
-            rank=99,
-            active=True,
-        ))
+        print("- Rodízio de domingos...")
+        rotation_df = pd.DataFrame(seed_data.get("sunday_rotation", []))
+        if not rotation_df.empty:
+            rotation_df["sunday_date"] = pd.to_datetime(rotation_df["sunday_date"]).dt.date
+            rotation_df["folga_date"] = pd.to_datetime(rotation_df["folga_date"]).dt.date
+            repo.save_sunday_rotation(rotation_df, sector_id=sector_id)
 
-    # 3. Turnos
-    print("- Turnos...")
-    df_shifts = importer.load_shift_catalog()
-    if not df_shifts.empty:
-        df_shifts = df_shifts.drop_duplicates("shift_code").copy()
-    if "day_scope" not in df_shifts.columns and not df_shifts.empty:
-        df_shifts["day_scope"] = "WEEKDAY"
-    sunday_row = pd.DataFrame([{"shift_code": "DOM_08_12_30", "minutes_median": 270, "day_scope": "SUNDAY"}])
-    df_all = pd.concat([df_shifts, sunday_row]) if not df_shifts.empty else sunday_row
-    repo.save_shifts(df_all)
+        print("- Preferências...")
+        for pref in seed_data.get("preference_requests", []):
+            repo.add_preference(
+                PreferenceRequest(
+                    request_id=str(pref["request_id"]),
+                    employee_id=str(pref["employee_id"]).upper(),
+                    request_date=date.fromisoformat(str(pref["request_date"])),
+                    request_type=RequestType(str(pref["request_type"])),
+                    priority=str(pref.get("priority", "MEDIUM")).upper(),
+                    target_shift_code=pref.get("target_shift_code"),
+                    note=str(pref.get("note", "")),
+                )
+            )
 
-    # 4. Mosaico semanal
-    print("- Mosaico...")
-    if not df_slots.empty:
-        df_tpl = df_slots.drop_duplicates(["employee_id", "day_name"]).copy()
-        df_tpl["employee_id"] = df_tpl["employee_id"].str.strip().apply(
-            lambda x: NAME_ALIASES.get(str(x).upper(), str(x).upper()) if pd.notna(x) else x
+        print("- Exceções...")
+        for exc in seed_data.get("exceptions", []):
+            repo.add_exception(
+                ScheduleException(
+                    sector_id=str(exc.get("sector_id", sector_id)),
+                    employee_id=str(exc["employee_id"]).upper(),
+                    exception_date=date.fromisoformat(str(exc["exception_date"])),
+                    exception_type=ExceptionType(str(exc["exception_type"])),
+                    note=str(exc.get("note", "")),
+                )
+            )
+
+        print("- Demand profile...")
+        for slot in seed_data.get("demand_slots", []):
+            repo.add_demand_slot(
+                DemandSlot(
+                    sector_id=str(slot.get("sector_id", sector_id)),
+                    work_date=date.fromisoformat(str(slot["work_date"])),
+                    slot_start=str(slot["slot_start"]),
+                    min_required=int(slot["min_required"]),
+                )
+            )
+
+        print("- Patch de governança/policy...")
+        _apply_governance_policy_patch(seed_data)
+
+        print(
+            f"Concluído: {len(seed_data.get('employees', []))} colaboradores, "
+            f"{len(seed_data.get('shifts', []))} turnos, "
+            f"{len(seed_data.get('weekday_template', []))} slots de mosaico e "
+            f"{len(seed_data.get('sunday_rotation', []))} entradas de rodízio."
         )
-        repo.save_weekday_template(df_tpl)
-
-    # 5. Rodízio de domingos (normalizar employee_id para canônico)
-    print("- Rodízio de domingos...")
-    if not df_rot.empty:
-        df_rot = df_rot.copy()
-        df_rot["employee_id"] = df_rot["employee_id"].str.strip().apply(
-            lambda x: NAME_ALIASES.get(str(x).upper(), str(x).upper()) if pd.notna(x) else x
-        )
-        repo.save_sunday_rotation(df_rot)
-
-    print(f"Concluído: {len(seen)} colaboradores, turnos, mosaico e rodízio.")
-    session.close()
+    finally:
+        session.close()
 
 
 if __name__ == "__main__":

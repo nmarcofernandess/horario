@@ -1,0 +1,164 @@
+---
+description: Contexto do projeto EscalaFlow para IA — propósito, stack, estrutura e regras
+alwaysApply: true
+---
+
+# EscalaFlow — Contexto para Agente
+
+## Estado atual
+
+**Piloto:** setor Caixa. Core multi-setor por `sector_id`. **Output principal:** escala legível para o funcionário (quem trabalha em qual dia, horário, domingo, folga). Sem esse output humano, o resto não resolve. *(Fonte: transcrição áudios 2026-02-11 — `docs/legacy/TRANSCRICAO_AUDIOS_2026-02-11.md`)*
+
+### Filosofia
+
+- **Escala Caixa** = instância piloto atual
+- **Motor de Compliance** = core reaproveitável para qualquer setor
+- Acougue e demais setores não entram no MVP — via onboarding futuro
+
+### Sistema fecha hoje?
+
+**Não completamente.** O que fecha: gerar escala, calendário, tabela, export, CRUD colaboradores/setores/pedidos/turnos, indicador API, perfil. Lacunas: Exceções/Demand/Mosaico/Rodízio precisam CRUD completo; falta Simulação; harmonizar labels de violação. Ver `docs/SISTEMA_ESCALAFLOW.md` seção 10.
+
+---
+
+## Visão do produto e modelo
+
+### Seed ≠ pular CRUD na UI
+
+- **Seed existe para desenvolvimento e teste.** Usamos `scripts/seed.py` com fixtures para popular o banco rápido.
+- **NUNCA assumir:** "já que o seed popula X, não preciso codar CRUD na UI para X". Isso está errado.
+- **Regra:** Tudo que o seed popula (colaboradores, turnos, mosaico, rodízio, exceções, etc.) **deve ter gestão CRUD completa na UI**. O produto é vendido para empresas; cada cliente configura tudo pela interface. Não há suporte manual com seed para clientes.
+- Se a IA pensar "vou deixar só via seed" para qualquer entidade configurável → **erro**. Implementar sempre o CRUD na UI.
+
+### Modelo de negócio e sistema
+
+- **Sistema offline:** Cada empresa instala localmente. Roda sem internet. Não é SaaS cloud com pagamento recorrente.
+- **Hoje não temos:** login com validação, email, senha, pagamento, autenticação.
+- **O que teremos:** página de perfil simples — foto, nome, tema (preferências visuais). O usuário (gestor/RH) configura e sente que "o sistema é meu". Não é login com validação; é perfil local do usuário daquela instalação.
+
+---
+
+## Documentação essencial
+
+1. **docs/SISTEMA_ESCALAFLOW.md** — LEIA PRIMEIRO: fluxo, dados, setup, arquitetura resumida, status "fecha ou não"
+2. **docs/BUILD_ARQUITETURA_MOTOR_COMPLIANCE_ESCALA_CAIXA.md** — PlantUML, ER, fluxos, ordem de ingestão
+3. **docs/WARLOG_SISTEMA_ESCALAFLOW_GLOBAL.md** — Backlog mestre, dashboard de guerra
+4. **docs/POLITICA_DOCUMENTACAO.md** — Regra: atualizar docs no mesmo ciclo de implementação
+5. **docs/legacy/TRANSCRICAO_AUDIOS_2026-02-11.md** — Dor real do cliente: output legível para funcionário é prioridade #1; relógio de ponto vem depois
+6. **docs/legacy/REDPILL_LEIS_LOGICA_HUMANA_ESCALA.md** — Pirâmide de prioridade (LEI → OPERAÇÃO → PACTOS → MERITOCRACIA → DEMOCRACIA → O BURRO)
+
+---
+
+## Stack e estrutura
+
+### Stack
+
+- **Backend:** FastAPI + SQLite
+- **Frontend:** Electron + React + Vite + shadcn/ui
+- **Core:** Python (domain, application, infrastructure)
+
+### Estrutura
+
+```
+apps/
+  backend/     → FastAPI REST (main.py, routes/, schemas.py) + src/ (domain, application, infrastructure)
+  frontend/    → Electron (main spawna API), React em src/renderer/
+schemas/       → compliance_policy.example.json
+data/fixtures/ → CSVs para seed (slots, shift_catalog, sunday_rotation)
+data/processed/→ Output gerado em runtime (assignments, violations, escala_calendario)
+tests/         → Testes pytest
+```
+
+---
+
+## Como funciona
+
+1. UI chama `POST /scale/generate` (period_start, period_end, sector_id)
+2. Orchestrator carrega: turnos, mosaico (cycle_templates), rodízio (sunday_rotations), exceções, pedidos
+3. CycleGenerator projeta ciclo (template + rodízio domingos) → day_assignments
+4. Policy Engine valida (R1 consecutivos, R4 meta semanal) → violations
+5. Saída: assignments + violations + export HTML/MD
+
+### Regras principais
+
+| Código | Descrição |
+|--------|-----------|
+| R1_MAX_CONSECUTIVE | Dias consecutivos (máx. 6) |
+| R2_MIN_INTERSHIFT_REST | Intervalo entre jornadas (mín. 11h) |
+| R4_WEEKLY_TARGET | Meta semanal de horas |
+| R5_DEMAND_COVERAGE | Cobertura insuficiente |
+
+---
+
+## Onde procurar
+
+| Área | Arquivos |
+|------|----------|
+| **API** | `apps/backend/main.py`, `apps/backend/routes/`, `apps/backend/schemas.py` |
+| **Rotas com lógica pesada** | `apps/backend/routes/*.README.md` (scale, sunday_rotation, weekday_template) |
+| **Frontend** | `apps/frontend/src/renderer/pages/`, `lib/api.ts` |
+| **Lógica** | `apps/backend/src/domain/engines.py`, `apps/backend/src/application/use_cases.py` |
+| **Banco** | `apps/backend/src/infrastructure/database/`, `apps/backend/src/infrastructure/repositories_db.py` |
+| **Policy** | `schemas/compliance_policy.example.json` |
+| **Seed** | `scripts/seed.py`, `data/fixtures/` |
+| **Docs legados** | `docs/legacy/` (transcrição, redpill leis, PRD 001) |
+
+---
+
+## Regras críticas para IA
+
+### SEMPRE verificar antes de criar
+
+1. **Componente similar existe?** → Check `apps/frontend/src/renderer/components/`
+2. **Endpoint similar?** → Check `apps/backend/routes/`
+3. **Helper/display já existe?** → Check `apps/backend/src/application/ui/display.py`
+4. **Modelo/entidade já definida?** → Check `apps/backend/src/domain/models.py`, `apps/backend/schemas.py`
+
+### NUNCA criar
+
+- Scripts ou UI fora da API (backend é FastAPI; frontend é Electron/React)
+- Novo repositório/ORM sem passar por `src/infrastructure/repositories_db.py`
+- Employee_id com siglas (CLE, ANJ) — usar nome canônico (CLEONICE, ANA JULIA)
+- **NUNCA pular CRUD na UI** porque "o seed já popula" — entidades configuráveis (mosaico, rodízio, turnos, etc.) exigem CRUD completo na interface
+
+### SEMPRE usar
+
+- Backend via **apps/backend/** (FastAPI), não scripts avulsos
+- `employee_id` = nome canônico em todo o sistema
+- Docs como fonte de verdade antes de assumir comportamento
+
+---
+
+## Termos técnicos → usuário
+
+| Técnico | Usuário |
+|---------|---------|
+| employee_id | Colaborador (nome) |
+| WORK / FOLGA | Trabalho / Folga |
+| ABSENCE | Ausência |
+| CAI1, CAI2... | Turnos |
+| CRITICAL / HIGH | Crítico / Alto |
+
+---
+
+## Comandos
+
+```bash
+# Seed (primeira vez)
+PYTHONPATH=. python scripts/seed.py
+
+# Rodar
+cd apps/frontend && npm run api      # Terminal 1
+cd apps/frontend && npm run electron # Terminal 2
+npm run online  # API + web juntos (dentro de apps/frontend)
+```
+
+### Antes de rodar: matar processos órfãos
+
+Múltiplas instâncias de Electron (ou API) podem ficar rodando — cada `npm run electron` abre nova janela. **Antes de rodar:** verificar se já estão rodando, dar kill e rodar de novo:
+
+```bash
+pkill -f electron   # Mata Electron
+pkill -f uvicorn    # Mata API
+# Depois: npm run api (T1) e npm run electron (T2)
+```

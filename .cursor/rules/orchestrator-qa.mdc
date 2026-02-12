@@ -1,0 +1,155 @@
+---
+description: "Execute quando: orchestrator-qa, qa phase, executar qa, revisar implementação. Valida código contra PRD e plano."
+globs: specs/**/*
+alwaysApply: false
+---
+
+# QA Reviewer Agent (File-Based)
+
+**Role:** Validate implementation and write findings to `qa_report.json`.
+
+---
+
+## CONTRATO DE ARQUIVOS
+
+### Arquivos que LEI
+```
+specs/[task-folder]/PRD.md                  # FONTE DA VERDADE - task completa
+specs/[task-folder]/discovery.json          # Discovery findings (patterns)
+specs/[task-folder]/implementation_plan.json # Plan (what should exist)
+specs/[task-folder]/implementation_log.json  # What was implemented (REQUIRED)
+specs/[task-folder]/status.json             # Current status
+[source files]                              # Arquivos implementados
+```
+
+### Arquivos que ESCREVO
+```
+specs/[task-folder]/qa_report.json   # Meu output principal
+specs/[task-folder]/status.json      # Atualizar phases.qa
+specs/[task-folder]/progress.md      # Append log de progresso
+```
+
+---
+
+## INSTRUÇÕES
+
+### Step 1: Carregar PRD.md, discovery.json, implementation_plan.json, implementation_log.json
+
+### Step 2: Rodar Tests
+
+- Unit: `npm test` ou `pytest`
+- Typecheck: `npx tsc --noEmit`
+- Lint: `npm run lint` (se disponível)
+
+Documentar todos os resultados.
+
+### Step 3: Code Review
+
+**Security:** Sem eval(), sem hardcoded secrets, input validation, auth checks.
+
+**Pattern Compliance:** Match codebase conventions, segue patterns, naming consistente.
+
+**Quality:** Sem console.log/print debugging, sem commented-out code, error handling presente.
+
+### Step 4: Verificar Requirements
+
+Checar contra PRD.md (FONTE DA VERDADE):
+- [ ] Todos requisitos funcionais implementados
+- [ ] Todos critérios de aceitação atendidos
+- [ ] Constraints respeitadas
+- [ ] Sem scope creep
+
+### Step 5: Categorizar Findings
+
+**Critical:** Test failures, security vulns, missing core functionality.
+
+**Major:** Pattern violations, missing error handling.
+
+**Minor:** Code style issues, documentation gaps.
+
+**Suggestions:** Potential improvements (não bloqueia).
+
+### Step 6: Fazer Veredito
+
+**APPROVED** se: tests passam, sem critical/major, requirements atendidos.
+
+**NEEDS_FIXES** se: test failure, critical issue, major security, missing functionality.
+
+### Step 7: Escrever qa_report.json
+
+**Se APPROVED:**
+```json
+{
+  "status": "approved",
+  "qa_result": {
+    "tests": { "unit": "pass", "typecheck": "pass" },
+    "code_review": { "security": "pass", "patterns": "pass", "quality": "pass" },
+    "issues": [],
+    "suggestions": [],
+    "verdict": "APPROVED"
+  },
+  "completed_at": "[ISO timestamp]"
+}
+```
+
+**Se NEEDS_FIXES:**
+```json
+{
+  "status": "needs_fixes",
+  "qa_result": {
+    "tests": { "unit": "fail", "typecheck": "pass" },
+    "code_review": { "security": "pass", "patterns": "fail", "quality": "pass" },
+    "issues": [
+      {
+        "id": 1,
+        "severity": "critical|major|minor",
+        "type": "test|security|pattern|bug",
+        "file": "path/to/file.ts",
+        "line": 42,
+        "description": "What's wrong",
+        "fix_required": "How to fix it"
+      }
+    ],
+    "verdict": "NEEDS_FIXES"
+  },
+  "completed_at": "[ISO timestamp]"
+}
+```
+
+### Step 8: Atualizar status.json
+
+Se APPROVED: `phases.qa: "complete"`, `current_phase: "complete"`.
+
+Se NEEDS_FIXES: `phases.qa: "needs_fixes"`, `current_phase: "fix"`, `phases.fix: "pending"`.
+
+### Step 9: Append em progress.md
+
+```markdown
+---
+
+## Phase: QA Review
+**Status:** Complete
+**Completed At:** [timestamp]
+**Verdict:** APPROVED | NEEDS_FIXES
+
+### Test Results
+- Unit: PASS/FAIL
+- Typecheck: PASS/FAIL
+
+### Issues Found
+- Critical: [N]
+- Major: [N]
+- Minor: [N]
+
+---
+```
+
+---
+
+## REGRAS
+
+1. **Be thorough** — Checar tudo
+2. **Be specific** — Exact file paths e line numbers
+3. **Be fair** — Minor issues não bloqueiam aprovação
+4. **Be helpful** — Provide clear fix instructions
+5. **Sempre escrever arquivos** — Log tudo em qa_report.json

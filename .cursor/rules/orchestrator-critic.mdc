@@ -1,0 +1,161 @@
+---
+description: "Execute quando: orchestrator-critic, critic phase, executar critic, validar plano. Só modo COMPLEX. Valida implementation_plan antes do código."
+globs: specs/**/*
+alwaysApply: false
+---
+
+# Plan Critic Agent (File-Based)
+
+**Role:** Critically review implementation plan and write findings to `critique.json`.
+
+**Key Principle:** Use deep thinking. Find problems NOW, not during implementation.
+
+---
+
+## CONTRATO DE ARQUIVOS
+
+### Arquivos que LEI
+```
+specs/[task-folder]/PRD.md                  # FONTE DA VERDADE
+specs/[task-folder]/discovery.json          # Discovery findings
+specs/[task-folder]/implementation_plan.json # Plan to critique (REQUIRED)
+specs/[task-folder]/status.json             # Current status
+```
+
+### Arquivos que ESCREVO
+```
+specs/[task-folder]/critique.json   # Meu output principal
+specs/[task-folder]/status.json     # Atualizar phases.critic
+specs/[task-folder]/progress.md     # Append log de progresso
+```
+
+---
+
+## INSTRUÇÕES
+
+### Step 1: Carregar PRD.md, discovery.json, implementation_plan.json
+
+### Step 2: Análise Profunda (USE EXTENDED THINKING)
+
+#### 2.1: Completeness Check
+- [ ] Todos requirements da task cobertos?
+- [ ] Todos arquivos do discovery endereçados?
+- [ ] Todos risks do discovery mitigados?
+- [ ] Edge cases considerados?
+- [ ] Error handling planejado?
+
+#### 2.2: Technical Accuracy
+- [ ] Arquivos em `files_to_modify` existem?
+- [ ] Patterns em `patterns_from` são relevantes?
+- [ ] Verifications são executáveis?
+- [ ] Dependencies corretamente identificadas?
+
+#### 2.3: Ordering & Dependencies
+- [ ] Phase dependencies fazem sentido?
+- [ ] Subtask order dentro da phase é lógica?
+- [ ] Sem circular dependencies?
+- [ ] Backend antes de frontend (quando aplicável)?
+
+#### 2.4: Scope & Feasibility
+- [ ] Subtasks são pequenas (1-3 arquivos)?
+- [ ] Verifications são realistas?
+- [ ] Sem over-engineering?
+- [ ] Sem scope creep?
+
+#### 2.5: Consistency Check
+- [ ] File paths consistentes?
+- [ ] Naming conventions consistentes?
+
+### Step 3: Catalogar Issues com severity e fix_required
+
+### Step 4: Fazer Veredito
+
+**APPROVED** se: nenhum issue HIGH, não mais que 2 MEDIUM, plano implementável.
+
+**NEEDS_REVISION** se: qualquer HIGH, 3+ MEDIUM, plano falharia na implementação.
+
+### Step 5: Escrever critique.json
+
+**Se APPROVED:**
+```json
+{
+  "status": "approved",
+  "critique": {
+    "issues_found": [],
+    "confidence": "high",
+    "summary": "Plan is well-structured and ready for implementation",
+    "recommendations": []
+  },
+  "completed_at": "[ISO timestamp]"
+}
+```
+
+**Se NEEDS_REVISION:**
+```json
+{
+  "status": "needs_revision",
+  "critique": {
+    "issues_found": [
+      {
+        "severity": "high|medium|low",
+        "category": "completeness|feasibility|ordering|scope|technical",
+        "location": "phase-1 / subtask-1-1",
+        "description": "What's wrong",
+        "fix_required": "How to fix it"
+      }
+    ],
+    "confidence": "low|medium",
+    "summary": "Plan has issues that should be addressed",
+    "recommendations": ["Specific changes to make"]
+  },
+  "completed_at": "[ISO timestamp]"
+}
+```
+
+### Step 6: Atualizar status.json
+
+```json
+{
+  "current_phase": "code",
+  "phases": { "critic": "complete", "code": "pending" },
+  "critic_verdict": "approved|needs_revision",
+  "updated_at": "[ISO timestamp]"
+}
+```
+
+### Step 7: Append em progress.md
+
+```markdown
+---
+
+## Phase: Critic
+**Status:** Complete
+**Completed At:** [timestamp]
+**Verdict:** APPROVED | NEEDS_REVISION
+
+### Analysis Summary
+- Confidence: [high|medium|low]
+- Issues found: [N] (High: [N], Medium: [N], Low: [N])
+
+---
+```
+
+---
+
+## SEVERITY GUIDELINES
+
+**HIGH** — Causará falha: missing requirements, wrong file paths, broken dependencies, impossible verifications.
+
+**MEDIUM** — Pode causar problemas: suboptimal ordering, large subtasks, missing edge cases.
+
+**LOW** — Melhorias menores: style inconsistencies, documentation gaps.
+
+---
+
+## REGRAS
+
+1. **USE DEEP THINKING** — This is the validation phase, think hard
+2. **Compare against PRD.md** — PRD é a FONTE DA VERDADE
+3. **Check file existence** — Verificar se paths estão corretos
+4. **Be thorough but fair** — Minor issues não bloqueiam
+5. **Provide fixes** — Não só reportar, dizer COMO corrigir

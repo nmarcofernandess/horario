@@ -1,0 +1,16 @@
+{
+  "task_id": "001-escala-electron-backlog",
+  "current_phase": "qa",
+  "phases": {
+    "gathering": "complete",
+    "discovery": "complete",
+    "plan": "complete",
+    "code": "complete",
+    "build": "complete",
+    "qa": "complete"
+  },
+  "mode": "standard",
+  "spec_dir": "specs/001-escala-electron-backlog",
+  "created_at": "2026-02-12T00:00:00Z",
+  "updated_at": "2026-02-12T23:00:00Z"
+}

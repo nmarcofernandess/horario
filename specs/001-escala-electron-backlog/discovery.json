@@ -1,0 +1,103 @@
+{
+  "spec_dir": "specs/001-escala-electron-backlog",
+  "phase": "discovery",
+  "completed_at": "2026-02-12",
+  "sources_analyzed": [
+    "electron-app/src/renderer/",
+    "api/routes/",
+    "api/schemas.py",
+    "src/infrastructure/repositories_db.py",
+    "src/infrastructure/database/extended_orm.py"
+  ],
+  "files_relevant": {
+    "frontend": [
+      "electron-app/src/renderer/pages/EscalaPage.tsx",
+      "electron-app/src/renderer/pages/ConfiguracaoPage.tsx",
+      "electron-app/src/renderer/pages/PedidosPage.tsx",
+      "electron-app/src/renderer/pages/ColaboradoresPage.tsx",
+      "electron-app/src/renderer/lib/api.ts",
+      "electron-app/src/renderer/lib/format.ts",
+      "electron-app/src/renderer/components/Layout.tsx",
+      "electron-app/src/renderer/components/app-sidebar.tsx",
+      "electron-app/src/renderer/App.tsx"
+    ],
+    "api": [
+      "api/main.py",
+      "api/routes/shifts.py",
+      "api/routes/exceptions.py",
+      "api/routes/demand_profile.py",
+      "api/routes/config.py",
+      "api/schemas.py"
+    ],
+    "backend_to_create": [
+      "api/routes/weekday_template.py",
+      "api/routes/sunday_rotation.py"
+    ]
+  },
+  "patterns_found": {
+    "format_usage": "format.ts tem STATUS_LABELS (WORK→Trabalho, FOLGA→Folga, ABSENCE→Ausência); EscalaPage usa formatStatus, formatShift, formatRule, formatSeverity; PedidosPage usa formatRequestType; CellStatus usa formatStatus/formatShift",
+    "api_client": "api.ts usa fetchApi; API_BASE=import.meta.env.VITE_API_URL || http://127.0.0.1:8000; api.health() retorna r.ok mas não é usado em UI",
+    "layout": "Layout.tsx com max-w-6xl; AppSidebar em app-sidebar.tsx; header sem indicador de API",
+    "config_page": "ConfiguracaoPage tem 5 tabs (turnos, mosaico, rodizio, excecoes, demand), todas com placeholder Card sem conteúdo real"
+  },
+  "api_endpoints": {
+    "existing": {
+      "GET /health": "Retorna {status:ok}; sem uso no frontend",
+      "GET /shifts": "Lista turnos por sector_id; ConfiguracaoPage não consome",
+      "GET /exceptions": "Lista exceções; ConfiguracaoPage não consome",
+      "POST /exceptions": "Cria exceção; ConfiguracaoPage não consome",
+      "GET /demand-profile": "Lista slots; ConfiguracaoPage não consome",
+      "POST /demand-profile": "Cria slot; ConfiguracaoPage não consome"
+    },
+    "missing": {
+      "GET /week-day-template": "Repo tem load_weekday_template_data; retorna CycleTemplateORM (employee_id, day_key, shift_code, minutes)",
+      "POST /week-day-template": "Repo tem save_weekday_template(df_slots); aceita lista de {employee_id, day_key, shift_code, minutes}",
+      "GET /sunday-rotation": "Repo tem load_sunday_rotation; retorna scale_index, employee_id, sunday_date, folga_date",
+      "POST /sunday-rotation": "Repo tem save_sunday_rotation(df_rot); aceita lista de {scale_index, employee_id, sunday_date, folga_date}"
+    }
+  },
+  "repo_methods_ready": {
+    "load_weekday_template_data": "Retorna DataFrame de CycleTemplateORM (source=TEMPLATE_BASE); employee_id, day_key, shift_code, minutes",
+    "save_weekday_template": "Recebe df_slots com employee_id, day_key/day_name, shift_code; limpa e insere",
+    "load_sunday_rotation": "Retorna DataFrame scale_index, employee_id, sunday_date, folga_date",
+    "save_sunday_rotation": "Recebe df_rot; limpa e insere"
+  },
+  "prd_task_mapping": {
+    "T7": "Auditar format.ts + todos os componentes; EscalaPage/PedidosPage já usam format; verificar células e violações",
+    "T8": "EscalaPage já tem CellStatus com cores (verde/âmbar/azul/vermelho); tabela usa CellStatus; OK",
+    "T9": "EscalaPage.tsx linha 236: assignments.slice(0, 50); adicionar paginação real (20/página)",
+    "T10": "api.health() existe; Layout/header não usa; adicionar Badge indicador no header",
+    "T11": "Erro genérico em EscalaPage; adicionar botão Reconectar quando fetch falha",
+    "T12": "EscalaPage já tem setLoading durante handleGenerate; spinner 'Gerando...'; verificar se skeleton melhoraria",
+    "T13": "api.ts não tem shifts; adicionar api.shifts.list(); ConfiguracaoPage tab Turnos: tabela com GET /shifts",
+    "T14": "api.ts não tem exceptions; adicionar api.exceptions.list/create(); ConfiguracaoPage tab Exceções: lista + form",
+    "T15": "api.ts não tem demand; adicionar api.demandProfile.list/create(); ConfiguracaoPage tab Demand: lista + form",
+    "T16": "Criar rotas GET/POST week-day-template; ConfiguracaoPage tab Mosaico: grid colaborador×dia→turno",
+    "T16b": "Criar rotas GET/POST sunday-rotation; ConfiguracaoPage tab Rodízio: tabela domingo/colaborador/folga",
+    "T16c": "Implementar rotas em api/routes/",
+    "T22": "Nova página PerfilPage; Profile.tsx; rota na App; nav-user ou sidebar"
+  },
+  "dependencies": {
+    "employees": "Mosaico e Exceções precisam lista de colaboradores (api.employees.list)",
+    "shifts": "Mosaico precisa lista de turnos (api.shifts.list)",
+    "sectors": "Config pode usar sector_id; default CAIXA"
+  },
+  "risks": [
+    "save_sunday_rotation espera DataFrame; API deve receber JSON e converter para DataFrame antes de chamar repo",
+    "day_key no CycleTemplateORM: SEG/TER ou MON/TUE? seed usa day_name; engine usa day_key",
+    "api.ts não tem métodos para shifts, exceptions, demand-profile, week-day-template, sunday-rotation"
+  ],
+  "implementation_order_suggested": [
+    "1. Adicionar api.shifts, api.exceptions, api.demandProfile em api.ts",
+    "2. T13: ConfiguracaoPage Turnos — listar da API",
+    "3. T14: ConfiguracaoPage Exceções — lista + form",
+    "4. T15: ConfiguracaoPage Demand — lista + form",
+    "5. T16c: Criar rotas week-day-template e sunday-rotation",
+    "6. T16: ConfiguracaoPage Mosaico — grid editável",
+    "7. T16b: ConfiguracaoPage Rodízio — tabela editável",
+    "8. T9: Paginação tabela EscalaPage",
+    "9. T10/T11: Indicador API + botão Reconectar",
+    "10. T7: Auditoria tradução (provavelmente OK)",
+    "11. T22: Página Perfil"
+  ]
+}

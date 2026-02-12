@@ -1,0 +1,47 @@
+---
+description: Usa Context7 para documentação shadcn/ui em arquivos de frontend
+globs: apps/frontend/**/*
+alwaysApply: false
+---
+
+# shadcn/ui — Documentação via Context7
+
+**OBRIGATÓRIO** ao editar, criar ou revisar arquivos em `apps/frontend/`.
+
+## Fluxo
+
+1. **Antes de implementar** componentes, padrões ou estilo com shadcn/ui, busque a documentação atualizada:
+   - `mcp_plugin-context7-context7_resolve-library-id` com `libraryName: "shadcn/ui"` (se precisar do ID)
+   - `mcp_plugin-context7-context7_get-library-docs` com:
+     - `context7CompatibleLibraryID`: `/shadcn-ui/ui`
+     - `topic`: o assunto da tarefa (ex.: "button", "dialog", "form", "table", "sidebar", "theme", "tailwind")
+
+2. **Use a doc como referência** — não improvise APIs ou props. shadcn segue padrões específicos (Radix, cn(), variantes).
+
+## Biblioteca Context7
+
+| Campo | Valor |
+|-------|-------|
+| Library ID | `/shadcn-ui/ui` |
+| Resolver | `libraryName: "shadcn/ui"` |
+
+## Exemplos de topic
+
+- `button`, `input`, `select`, `dialog`, `sheet`, `dropdown-menu`
+- `table`, `card`, `tabs`, `badge`, `avatar`
+- `sidebar`, `theme`, `dark mode`
+- `form`, `validation`, `react-hook-form`
+
+## Regras
+
+- Consulte a doc **antes** de criar ou modificar componentes UI.
+- Mantenha `cn()` do `lib/utils` para classes condicionais.
+- Prefira componentes shadcn existentes em `src/renderer/components/ui/` em vez de criar do zero.
+
+---
+
+## Princípio: congruência com shadcn
+
+**Não importar Radix diretamente na app.** Só importar de `@/components/ui/*` (Button, Badge, Select, etc.). Os primitivos Radix ficam encapsulados dentro dos componentes `ui/`.
+
+**Para componentes em `ui/`:** seguir o shadcn oficial à risca — imports (`@radix-ui/react-*`), estrutura, props. Quando adicionar ou atualizar: `npx shadcn@latest add [component]` ou copiar da doc oficial. Não usar `radix-ui` (unified) se o shadcn usa `@radix-ui/react-slot` etc.
