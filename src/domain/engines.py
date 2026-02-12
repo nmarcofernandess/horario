@@ -134,16 +134,18 @@ class CycleGenerator:
                                 context: ProjectionContext) -> pd.DataFrame:
         """
         Projects the abstract cycle onto a concrete calendar period.
+        anchor_date: domingo de referência do ciclo. Se None, assume period_start = dia 1.
         """
         if cycle_template.empty: return pd.DataFrame()
 
         cycle_len = int(cycle_template['cycle_day'].max())
+        anchor = context.anchor_date if context.anchor_date else context.period_start
         rows = []
         cursor = context.period_start
-        current_cycle_day_idx = 0 
         
         while cursor <= context.period_end:
-            cycle_day = (current_cycle_day_idx % cycle_len) + 1
+            offset = (cursor - anchor).days
+            cycle_day = (offset % cycle_len) + 1
             day_defs = cycle_template[cycle_template['cycle_day'] == cycle_day]
             
             for _, d in day_defs.iterrows():
@@ -157,7 +159,6 @@ class CycleGenerator:
                 })
             
             cursor += timedelta(days=1)
-            current_cycle_day_idx += 1
             
         return pd.DataFrame(rows)
 

@@ -44,6 +44,20 @@ class SqlAlchemyRepository:
     
     # WRITE METHODS (For CRUD UI and Seeding)
     
+    def load_contract_targets(self, sector_id: str = "CAIXA") -> Dict[str, int]:
+        """Retorna mapeamento employee_id -> weekly_minutes para validação de meta semanal."""
+        orm_emps = self.session.query(EmployeeORM).filter(
+            EmployeeORM.active == True,
+            EmployeeORM.sector_id == sector_id
+        ).all()
+        orm_contracts = {c.contract_code: c.weekly_minutes for c in self.session.query(ContractORM).all()}
+        return {e.employee_id: orm_contracts.get(e.contract_code, 2640) for e in orm_emps}
+
+    def load_sectors(self) -> List[tuple]:
+        """Retorna lista de (sector_id, name) ordenados por nome."""
+        orm_sectors = self.session.query(SectorORM).filter(SectorORM.active == True).all()
+        return [(s.sector_id, s.name) for s in sorted(orm_sectors, key=lambda x: x.name)]
+
     def add_sector(self, sector_id: str, name: str):
         if self.session.get(SectorORM, sector_id) is None:
             self.session.add(SectorORM(sector_id=sector_id, name=name))
@@ -57,7 +71,9 @@ class SqlAlchemyRepository:
             self.session.commit()
 
     def add_employee(self, e: Employee):
-        if self.session.get(EmployeeORM, e.employee_id) is None:
+        """Adiciona ou atualiza colaborador (upsert). Atualiza nome para formato agradável quando já existe."""
+        existing = self.session.get(EmployeeORM, e.employee_id)
+        if existing is None:
             self.session.add(EmployeeORM(
                 employee_id=e.employee_id,
                 name=e.name,
@@ -66,6 +82,15 @@ class SqlAlchemyRepository:
                 rank=e.rank,
                 active=e.active
             ))
+        else:
+            existing.name = e.name
+            existing.contract_code = e.contract_code
+        self.session.commit()
+
+    def update_employee_rank(self, employee_id: str, rank: int):
+        emp = self.session.get(EmployeeORM, employee_id)
+        if emp:
+            emp.rank = rank
             self.session.commit()
 
     def add_preference(self, req: PreferenceRequest):

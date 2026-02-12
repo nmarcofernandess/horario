@@ -5,11 +5,11 @@ from typing import Dict, Any, List
 
 class LegacyCSVImporter:
     """
-    Importer for legacy processed CSV files to support 'From Scratch' configuration UI.
-    Located in data/processed/.
+    Importer de fixtures CSV para seed e UI de Regras.
+    Padrão: data/fixtures/
     """
     
-    def __init__(self, data_dir: str):
+    def __init__(self, data_dir):
         self.data_dir = Path(data_dir)
     
     def load_shift_catalog(self) -> pd.DataFrame:

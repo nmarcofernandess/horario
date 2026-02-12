@@ -85,8 +85,8 @@
       "contract_code": "H44_CAIXA",
       "weekly_minutes": 2640,
       "employees": [
-        "CLE",
-        "ANJ"
+        "CLEONICE",
+        "ANA JULIA"
       ],
       "allowed_weekday_shift_codes": [
         "CAI1",
@@ -103,7 +103,7 @@
       "contract_code": "H36_CAIXA",
       "weekly_minutes": 2160,
       "employees": [
-        "GAB"
+        "GABRIEL"
       ],
       "allowed_weekday_shift_codes": [
         "CAI1",
@@ -120,9 +120,9 @@
       "contract_code": "H30_CAIXA",
       "weekly_minutes": 1800,
       "employees": [
-        "MAY",
-        "HEL",
-        "ALI"
+        "MAYUMI",
+        "HELOISA",
+        "ALICE"
       ],
       "allowed_weekday_shift_codes": [
         "CAI1",

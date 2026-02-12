@@ -123,3 +123,4 @@ class ProjectionContext:
     period_end: date
     sector_id: str
     anchor_scale_id: int = 1
+    anchor_date: Optional[date] = None  # Domingo de referência do ciclo; se None, usa period_start

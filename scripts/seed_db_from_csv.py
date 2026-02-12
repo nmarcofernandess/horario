@@ -12,8 +12,7 @@ def seed_everything():
     session = SessionLocal()
     repo = SqlAlchemyRepository(session)
     
-    # Path to legacy data
-    DATA_DIR = Path(__file__).resolve().parents[1] / "data" / "processed"
+    DATA_DIR = Path(__file__).resolve().parents[1] / "data" / "fixtures"
     importer = LegacyCSVImporter(DATA_DIR)
     
     # 1. Sectors & Contracts (Mocked based on CAIXA)

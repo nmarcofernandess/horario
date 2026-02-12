@@ -1,11 +1,14 @@
 # ARQUITETURA: Motor de Compliance de Escalas (Core Multi-Setor, Piloto Caixa)
 
-> Gerado por BUILD em 2026-02-11
-> Input: `/Users/marcofernandes/horario/docs/ANALYST_COMPLETO_DOR_ESTRUTURA_ESCALA_CAIXA.md`, `/Users/marcofernandes/horario/docs/PRD_SPEC_Escala_Caixa_Secullum.md`, `/Users/marcofernandes/horario/docs/LOGICA_EXTRAIDA_ESTRUTURA.md`
+> Fonte única de arquitetura para o motor.
+> Última revisão: 2026-02-12
 
 ---
 
 ## 0. Fonte de Verdade e Escopo
+
+### 0.0 Prioridade de produto (contexto validação)
+**Escala legível para o funcionário é o output principal.** Deve responder: em qual dia trabalha, em qual horário, qual domingo trabalha, qual dia de folga naquela semana. Sem esse output humano, o resto não resolve o problema.
 
 ### 0.1 Decisao oficial de escopo
 - Este BUILD e a fonte unica de arquitetura para o motor.
@@ -21,7 +24,7 @@
 
 | Escopo | Status hoje | Fonte |
 |---|---|---|
-| Core de validacao (hard/soft/semana/preferencia) | Pronto em mock | `scripts/mock_scale_cycle_pipeline.py` |
+| Core de validacao (hard/soft/semana/preferencia) | Implementado | `src/domain/engines.py`, `src/application/use_cases.py` |
 | Dados e regras Caixa | Cobertos | `schemas/compliance_policy.example.json` + datasets extraidos |
 | Acougue/outros setores | Nao onboarded | Sem policy/versionamento/demand profile dedicado |
 
@@ -547,38 +550,36 @@ Archived --> [*]
 
 ### 4.1 Arvore de arquivos alvo
 ```text
-/Users/marcofernandes/horario/
+horario/
 |-- app.py
+|-- pages/
+|   |-- 1_Colaboradores.py
+|   |-- 2_Pedidos.py
+|   `-- 3_Configuracao.py
 |-- scripts/
-|   `-- extract_scale_data.py
+|   `-- seed.py
 |-- data/
-|   |-- raw/
-|   `-- processed/
+|   |-- fixtures/          # CSVs mínimos para seed
+|   |   |-- pdf_rita1_slots.csv
+|   |   |-- pdf_rita_sunday_rotation.csv
+|   |   `-- pdf_rita1_shift_catalog_by_day.csv
+|   `-- processed/        # Saída da validação (gerado em runtime)
 |-- docs/
-|   |-- PRD_SPEC_Escala_Caixa_Secullum.md
-|   |-- LOGICA_EXTRAIDA_ESTRUTURA.md
-|   |-- ANALYST_COMPLETO_DOR_ESTRUTURA_ESCALA_CAIXA.md
 |   `-- BUILD_ARQUITETURA_MOTOR_COMPLIANCE_ESCALA_CAIXA.md
 |-- schemas/
 |   |-- compliance_policy.schema.json
 |   `-- compliance_policy.example.json
 |-- src/
 |   |-- application/
-|   |   |-- run_validation.py
-|   |   `-- export_reports.py
+|   |   `-- use_cases.py
 |   |-- domain/
 |   |   |-- models.py
 |   |   |-- policy_loader.py
-|   |   |-- compliance_engine.py
-|   |   |-- suggestion_engine.py
-|   |   `-- weekly_views.py
+|   |   `-- engines.py
 |   `-- infrastructure/
-|       |-- parsers/
-|       |-- repositories/
-|       `-- presenters/
-`-- tests/
-    |-- fixtures/
-    `-- test_compliance_engine.py
+|       |-- database/
+|       |-- parsers/legacy/
+|       `-- repositories_db.py
 ```
 
 ### 4.2 Responsabilidades
@@ -604,6 +605,11 @@ Archived --> [*]
 - Politica legal/operacional precisa ser versionada por vigencia para nao hardcodar regra.
 - Saida deve ser explicavel (regra, evidencias, impacto e sugestao) para RH/Juridico.
 - Schema de politica e o contrato central para previsibilidade de execucao.
+
+### Documentos de suporte
+- **DADOS_E_REVISAO_SISTEMA.md**: Interpretacao dos fixtures (dados "jogados" do Excel), semantica de cada arquivo, gaps e revisao de coerencia.
+- **FLUXO_USUARIO.md**: Fluxo completo para o usuario final (RH) com termos polidos.
+- **AUDITORIA_PRE_NEXT.md**: Double-check e especificacao para migracao Next.js (modelo, APIs, bugs conhecidos).
 
 ### Checklist de implementacao (ordem obrigatoria)
 
