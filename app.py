@@ -17,7 +17,7 @@ from src.application.use_cases import ValidationOrchestrator
 from src.application.ui.display import humanize_df_scale, humanize_df_violations
 
 st.set_page_config(
-    page_title="Escala de Caixa",
+    page_title="EscalaFlow",
     layout="wide",
     page_icon="📋",
     initial_sidebar_state="expanded",
@@ -49,7 +49,7 @@ POLICY_PATH = ROOT / "schemas" / "compliance_policy.example.json"
 
 # Sidebar
 with st.sidebar:
-    st.title("📋 Escala de Caixa")
+    st.title("📋 EscalaFlow")
     st.markdown("**Gestão de escala de trabalho**")
     st.divider()
     st.subheader("Período")
@@ -60,7 +60,7 @@ with st.sidebar:
 
 # Main
 st.title("Escala de Trabalho")
-st.markdown("Visualize e valide a escala do setor Caixa para o período selecionado.")
+st.markdown("Visualize e valide a escala para o período selecionado.")
 
 # Botão de ação principal
 if st.button("Atualizar escala", type="primary"):
@@ -82,10 +82,10 @@ if st.button("Atualizar escala", type="primary"):
             if "escala_reordenada" in st.session_state:
                 del st.session_state["escala_reordenada"]
             result = orchestrator.run(context, POLICY_PATH)
-            st.success(
-                f"Escala gerada: **{result['assignments_count']}** alocações, "
-                f"**{result['violations_count']}** alertas de regras."
-            )
+            msg = f"Escala gerada: **{result['assignments_count']}** alocações, **{result['violations_count']}** alertas."
+            if result.get("exceptions_applied", 0) > 0:
+                msg += f" **{result['exceptions_applied']}** exceções aplicadas."
+            st.success(msg)
             st.rerun()
         except ValueError as e:
             st.warning(str(e))
@@ -95,6 +95,18 @@ if st.button("Atualizar escala", type="primary"):
             with st.expander("Detalhes técnicos"):
                 import traceback
                 st.code(traceback.format_exc())
+
+# Export HTML/Markdown
+if OUTPUT.exists() and (OUTPUT / "escala_calendario.html").exists():
+    with st.expander("📄 Exportar escala (calendário)", expanded=False):
+        html_path = OUTPUT / "escala_calendario.html"
+        md_path = OUTPUT / "escala_calendario.md"
+        if html_path.exists():
+            with open(html_path, "r", encoding="utf-8") as f:
+                st.download_button("⬇️ Baixar HTML (imprimir/colar parede)", f.read(), file_name="escala_calendario.html", mime="text/html", key="dl_html")
+        if md_path.exists():
+            with open(md_path, "r", encoding="utf-8") as f:
+                st.download_button("⬇️ Baixar Markdown", f.read(), file_name="escala_calendario.md", mime="text/markdown", key="dl_md")
 
 # Exibir escala (com labels humanizados)
 if OUTPUT.exists() and (OUTPUT / "final_assignments.csv").exists():
