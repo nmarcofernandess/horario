@@ -17,9 +17,13 @@ tab1, tab2 = st.tabs(["Pendentes (RH)", "Novo pedido"])
 
 with tab1:
     st.subheader("Pedidos para aprovar")
+    st.caption("Ordenados por Picking Rules (MANUAL_RANK): menor rank = maior prioridade.")
     requests = repo.load_preferences()
-    emp_names = {e.employee_id: e.name for e in repo.load_employees().values()}
+    employees = repo.load_employees()
+    emp_names = {e.employee_id: e.name for e in employees.values()}
+    emp_ranks = {e.employee_id: e.rank for e in employees.values()}
     pending = [r for r in requests if r.decision == RequestDecision.PENDING]
+    pending = sorted(pending, key=lambda r: (emp_ranks.get(r.employee_id, 999), r.request_date))
     if not pending:
         st.success("Nenhum pedido pendente.")
     else:

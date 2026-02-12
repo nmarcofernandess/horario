@@ -1,9 +1,8 @@
-
 import pandas as pd
-from datetime import date, timedelta
+from datetime import date, timedelta, datetime
 from typing import Dict, List, Optional, Any
 from dataclasses import dataclass
-from src.domain.models import Shift, ProjectionContext, Violation, ViolationSeverity
+from src.domain.models import Shift, ProjectionContext, Violation, ViolationSeverity, DemandSlot
 
 @dataclass
 class CycleGenerator:
@@ -231,5 +230,120 @@ class PolicyEngine:
                     detail=f"Desvio de {delta} min (Meta: {target}, Real: {actual})",
                     evidence={"delta": delta, "actual": actual, "target": target}
                 ))
-                
+
+        return violations
+
+    def _shift_to_datetime_range(self, shift: Shift, work_date: date) -> tuple:
+        """Retorna (start_dt, end_dt) para o turno na data."""
+        default_start = "08:00"
+        if shift.start_time and shift.end_time:
+            start_str, end_str = shift.start_time, shift.end_time
+        else:
+            h, m = divmod(shift.minutes, 60)
+            start_str = default_start
+            end_h = 8 + h
+            end_m = m
+            if end_m >= 60:
+                end_h += 1
+                end_m -= 60
+            end_str = f"{end_h:02d}:{end_m:02d}"
+        start_dt = datetime.combine(work_date, datetime.strptime(start_str, "%H:%M").time())
+        end_dt = datetime.combine(work_date, datetime.strptime(end_str, "%H:%M").time())
+        if end_dt <= start_dt:
+            end_dt += timedelta(days=1)
+        return start_dt, end_dt
+
+    def validate_intershift_rest(
+        self,
+        day_assignments: pd.DataFrame,
+        shifts: Dict[str, Shift],
+        constraints: Dict[str, Any],
+    ) -> List[Violation]:
+        """
+        R2: Valida intervalo mínimo entre jornadas (CLT Art. 66).
+        min_intershift_rest_minutes padrão 660 (11h).
+        """
+        violations = []
+        min_rest = int(constraints.get("min_intershift_rest_minutes", 660))
+        if day_assignments.empty or not shifts:
+            return violations
+
+        df = day_assignments[day_assignments["status"] == "WORK"].copy()
+        df["work_date"] = pd.to_datetime(df["work_date"])
+        df = df.sort_values(["employee_id", "work_date"])
+
+        for employee_id, group in df.groupby("employee_id"):
+            rows = list(group.itertuples())
+            for i in range(len(rows) - 1):
+                curr, nxt = rows[i], rows[i + 1]
+                curr_date = curr.work_date.date() if hasattr(curr.work_date, "date") else curr.work_date
+                nxt_date = nxt.work_date.date() if hasattr(nxt.work_date, "date") else nxt.work_date
+                delta_days = (nxt_date - curr_date).days
+                if delta_days > 1:
+                    continue
+                shift_curr = shifts.get(curr.shift_code) if curr.shift_code else None
+                shift_nxt = shifts.get(nxt.shift_code) if nxt.shift_code else None
+                if not shift_curr or not shift_nxt:
+                    continue
+                _, end_curr = self._shift_to_datetime_range(shift_curr, curr_date)
+                start_nxt, _ = self._shift_to_datetime_range(shift_nxt, nxt_date)
+                if delta_days == 1:
+                    rest_minutes = (start_nxt - end_curr).total_seconds() / 60
+                else:
+                    rest_minutes = (start_nxt - end_curr).total_seconds() / 60
+                if rest_minutes < min_rest:
+                    violations.append(Violation(
+                        employee_id=employee_id,
+                        rule_code="R2_MIN_INTERSHIFT_REST",
+                        severity=ViolationSeverity.CRITICAL,
+                        date_start=curr_date,
+                        date_end=nxt_date,
+                        detail=f"Intervalo entre jornadas {int(rest_minutes)} min (mínimo: {min_rest})",
+                        evidence={"rest_minutes": rest_minutes, "min_required": min_rest},
+                    ))
+        return violations
+
+    def _shift_overlaps_slot(self, shift: Shift, work_date: date, slot_start: str) -> bool:
+        """Verifica se o turno cobre o slot (ex.: 08:00 = 08:00-08:30)."""
+        start_dt, end_dt = self._shift_to_datetime_range(shift, work_date)
+        slot_parts = slot_start.split(":")
+        slot_h, slot_m = int(slot_parts[0]), int(slot_parts[1]) if len(slot_parts) > 1 else 0
+        slot_begin = datetime.combine(work_date, datetime.strptime(slot_start, "%H:%M").time())
+        slot_end = slot_begin + timedelta(minutes=30)
+        return start_dt < slot_end and end_dt > slot_begin
+
+    def validate_demand_coverage(
+        self,
+        day_assignments: pd.DataFrame,
+        demand_slots: list,
+        shifts: Dict[str, Shift],
+    ) -> List[Violation]:
+        """
+        Valida cobertura mínima por faixa horária.
+        Se demand_slots vazio, retorna lista vazia.
+        """
+        violations = []
+        if not demand_slots or day_assignments.empty or not shifts:
+            return violations
+
+        df = day_assignments[day_assignments["status"] == "WORK"].copy()
+        df["work_date"] = pd.to_datetime(df["work_date"])
+
+        for slot in demand_slots:
+            day_assigns = df[df["work_date"] == pd.Timestamp(slot.work_date)]
+            count = 0
+            for _, row in day_assigns.iterrows():
+                shift = shifts.get(row["shift_code"]) if row["shift_code"] else None
+                if shift and self._shift_overlaps_slot(shift, slot.work_date, slot.slot_start):
+                    count += 1
+            if count < slot.min_required:
+                violations.append(Violation(
+                    employee_id="COBERTURA",  # Violação de setor, não de pessoa
+                    rule_code="R5_DEMAND_COVERAGE",
+                    severity=ViolationSeverity.MEDIUM,
+                    date_start=slot.work_date,
+                    date_end=slot.work_date,
+                    detail=f"Cobertura insuficiente em {slot.work_date} às {slot.slot_start}: {count} pessoas (mínimo: {slot.min_required})",
+                    evidence={"slot": slot.slot_start, "actual": count, "min_required": slot.min_required},
+                ))
         return violations

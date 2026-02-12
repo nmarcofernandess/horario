@@ -1,6 +1,6 @@
-# Escala Caixa - Compliance Engine
+# EscalaFlow - Compliance Engine
 
-Sistema de validação de compliance para escalas de caixa (turnos, domingos, folgas compensatórias).
+Sistema de validação de compliance para escalas de trabalho (turnos, domingos, folgas compensatórias).
 
 ## Estrutura
 

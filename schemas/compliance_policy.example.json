@@ -289,7 +289,7 @@
       "description": "Comparar minutos semanais com contrato conforme corte configurado.",
       "source": {
         "type": "INTERNAL_POLICY",
-        "identifier": "PRD Escala Caixa 2026"
+        "identifier": "PRD EscalaFlow 2026"
       }
     }
   ],

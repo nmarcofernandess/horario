@@ -1,0 +1,14 @@
+---
+description: Reiniciar o dev server após ajustes que exijam recarregar
+alwaysApply: true
+---
+
+# Reiniciar Dev Server
+
+Sempre que terminar um ajuste que exija recarregar o dev server (ex.: mudanças em configuração, dependências, Vite, Electron, variáveis de ambiente), execute o restart automaticamente:
+
+- **Electron app** (`electron-app/`): `npm run dev` (ou reiniciar o processo em background)
+- **Streamlit** (`app.py`): reiniciar o processo
+- **API** (`api/`): reiniciar o servidor
+
+Não espere o usuário pedir — faça o restart ao concluir o ajuste.

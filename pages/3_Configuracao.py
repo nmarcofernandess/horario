@@ -7,7 +7,7 @@ from src.infrastructure.database.setup import SessionLocal, init_db
 from src.infrastructure.repositories_db import SqlAlchemyRepository
 from src.infrastructure.parsers.legacy.csv_import import LegacyCSVImporter
 from src.domain.engines import CycleGenerator, PolicyEngine
-from src.domain.models import Shift, ProjectionContext, ShiftDayScope
+from src.domain.models import Shift, ProjectionContext, ShiftDayScope, ScheduleException, ExceptionType, DemandSlot
 
 # DB Setup
 init_db()
@@ -25,10 +25,12 @@ st.markdown("Defina turnos, mosaico semanal (quem trabalha em qual dia) e rodíz
 
 importer = LegacyCSVImporter(DATA_DIR)
 
-tab1, tab2, tab3, tab4, tab5 = st.tabs([
+tab1, tab2, tab3, tab4, tab5, tab6, tab7 = st.tabs([
     "Turnos",
     "Mosaico semanal",
     "Rodízio de domingos",
+    "Exceções",
+    "Demand (cobertura)",
     "Folgas",
     "Simular"
 ])
@@ -139,6 +141,79 @@ with tab3:
         st.warning("Nenhuma regra de domingo cadastrada.")
 
 with tab4:
+    st.subheader("Exceções (férias, atestado, bloqueios)")
+    st.markdown("Datas em que o colaborador não pode trabalhar — a escala converte WORK em ABSENCE.")
+
+    exc_type_map = {
+        "VACATION": "Férias",
+        "MEDICAL_LEAVE": "Atestado",
+        "SWAP": "Troca",
+        "BLOCK": "Bloqueio",
+    }
+    sector_id = "CAIXA"
+    period_start = date(2026, 2, 1)
+    period_end = date(2026, 12, 31)
+    exceptions = repo.load_exceptions(sector_id, period_start, period_end)
+
+    if exceptions:
+        exc_data = [
+            {
+                "Colaborador": e.employee_id,
+                "Data": e.exception_date,
+                "Tipo": exc_type_map.get(e.exception_type.value, e.exception_type.value),
+                "Observação": e.note or "",
+            }
+            for e in exceptions
+        ]
+        st.dataframe(pd.DataFrame(exc_data), width="stretch", hide_index=True)
+
+    with st.form("nova_excecao"):
+        st.subheader("Nova exceção")
+        employees = repo.load_employees()
+        emp_options = [(e.employee_id, e.name) for e in sorted(employees.values(), key=lambda x: x.name)]
+        emp_sel = st.selectbox("Colaborador", range(len(emp_options)), format_func=lambda i: emp_options[i][1])
+        emp_id = emp_options[emp_sel][0]
+        exc_date = st.date_input("Data", min_value=period_start, max_value=period_end)
+        exc_type = st.selectbox("Tipo", list(exc_type_map.keys()), format_func=lambda x: exc_type_map[x])
+        exc_note = st.text_input("Observação (opcional)")
+        if st.form_submit_button("Adicionar"):
+            exc = ScheduleException(
+                sector_id=sector_id,
+                employee_id=emp_id,
+                exception_date=exc_date,
+                exception_type=ExceptionType(exc_type),
+                note=exc_note,
+            )
+            repo.add_exception(exc)
+            st.success("Exceção adicionada.")
+            st.rerun()
+
+with tab5:
+    st.subheader("Demand profile (cobertura mínima por faixa)")
+    st.markdown("Define cobertura mínima por data e horário — ex.: 08:00 = 08:00-08:30, mínimo 2 pessoas.")
+
+    sector_id = "CAIXA"
+    period_start = date(2026, 2, 1)
+    period_end = date(2026, 12, 31)
+    demand_slots = repo.load_demand_profile(sector_id, period_start, period_end)
+
+    if demand_slots:
+        d_data = [{"Data": s.work_date, "Slot": s.slot_start, "Mín. pessoas": s.min_required} for s in demand_slots]
+        st.dataframe(pd.DataFrame(d_data), width="stretch", hide_index=True)
+
+    with st.form("novo_demand"):
+        st.subheader("Novo slot de demanda")
+        d_date = st.date_input("Data", min_value=period_start, max_value=period_end)
+        slot_options = [f"{h:02d}:{m:02d}" for h in range(8, 18) for m in (0, 30)]
+        d_slot = st.selectbox("Slot (início 30min)", slot_options)
+        d_min = st.number_input("Mínimo de pessoas", min_value=1, value=2)
+        if st.form_submit_button("Adicionar"):
+            slot = DemandSlot(sector_id=sector_id, work_date=d_date, slot_start=d_slot, min_required=d_min)
+            repo.add_demand_slot(slot)
+            st.success("Slot adicionado.")
+            st.rerun()
+
+with tab6:
     st.subheader("Matriz de folgas")
     df_folgas = importer.load_day_off_matrix()
     if not df_folgas.empty:
@@ -146,7 +221,7 @@ with tab4:
     else:
         st.info("Nenhuma matriz carregada.")
 
-with tab5:
+with tab7:
     st.subheader("Simular escala")
     
     c1, c2 = st.columns(2)
@@ -201,8 +276,13 @@ with tab5:
                 contract_targets = repo.load_contract_targets("CAIXA")
                 violations_cons = policy_engine.validate_consecutive_days(projection)
                 violations_hours = policy_engine.validate_weekly_hours(projection, contract_targets)
-                
-                all_violations = violations_cons + violations_hours
+                violations_intershift = policy_engine.validate_intershift_rest(
+                    projection, shifts, {"min_intershift_rest_minutes": 660}
+                )
+                demand_slots = repo.load_demand_profile("CAIXA", start_date, end_date)
+                violations_demand = policy_engine.validate_demand_coverage(projection, demand_slots, shifts)
+
+                all_violations = violations_cons + violations_hours + violations_intershift + violations_demand
             
             # 4. Display Results
             st.success(f"Escala gerada com {len(projection)} alocações.")

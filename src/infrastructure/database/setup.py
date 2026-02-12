@@ -2,7 +2,7 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 from pathlib import Path
 from .orm_models import Base
-from .extended_orm import ShiftORM, CycleTemplateORM, SundayRotationORM
+from .extended_orm import ShiftORM, CycleTemplateORM, SundayRotationORM, ExceptionORM, DemandProfileORM
 
 # DB Path
 DB_Path = Path(__file__).resolve().parents[3] / "data" / "compliance_engine.db"

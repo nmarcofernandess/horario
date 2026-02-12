@@ -1,4 +1,4 @@
-# Fluxo do usuário — Escala de Caixa
+# Fluxo do usuário — EscalaFlow
 
 > Guia do fluxo completo para o usuário final (RH / gestor).
 

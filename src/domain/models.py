@@ -28,6 +28,13 @@ class PickingStrategy(str, Enum):
     MANUAL_ONLY = "MANUAL_ONLY"
     MANUAL_RANK = "MANUAL_RANK"
 
+class ExceptionType(str, Enum):
+    """Tipos de exceção que convertem WORK em ABSENCE."""
+    VACATION = "VACATION"
+    MEDICAL_LEAVE = "MEDICAL_LEAVE"
+    SWAP = "SWAP"
+    BLOCK = "BLOCK"
+
 class ViolationSeverity(str, Enum):
     CRITICAL = "CRITICAL"
     HIGH = "HIGH"
@@ -106,6 +113,24 @@ class PreferenceRequest:
     note: str = ""
     decision: RequestDecision = RequestDecision.PENDING
     decision_reason: str = ""
+
+@dataclass(frozen=True)
+class ScheduleException:
+    """Exceção que remove o colaborador da escala em determinada data (férias, atestado, etc)."""
+    sector_id: str
+    employee_id: str
+    exception_date: date
+    exception_type: ExceptionType
+    note: str = ""
+
+
+@dataclass(frozen=True)
+class DemandSlot:
+    """Cobertura mínima por faixa horária (ex.: 08:00 = 08:00-08:30, min 2 pessoas)."""
+    sector_id: str
+    work_date: date
+    slot_start: str  # "08:00", "08:30", ...
+    min_required: int
 
 @dataclass(frozen=True)
 class Violation:

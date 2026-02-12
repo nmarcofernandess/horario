@@ -49,7 +49,9 @@ VIOLATION_LABELS = {
 # Regras de compliance → labels amigáveis
 RULE_LABELS: Dict[str, str] = {
     "R1_MAX_CONSECUTIVE": "Dias consecutivos (máx. 6)",
+    "R2_MIN_INTERSHIFT_REST": "Intervalo entre jornadas (mín. 11h)",
     "R4_WEEKLY_TARGET": "Meta semanal de horas",
+    "R5_DEMAND_COVERAGE": "Cobertura insuficiente",
 }
 
 # Gravidade
@@ -96,6 +98,8 @@ def humanize_df_violations(df, employee_names: Dict[str, str] = None):
         out["Gravidade"] = out["Gravidade"].map(humanize_severity)
     if "Regra" in out.columns:
         out["Regra"] = out["Regra"].map(humanize_rule)
-    if employee_names and "Colaborador" in out.columns:
-        out["Colaborador"] = out["Colaborador"].map(lambda x: employee_names.get(x, x))
+    if "Colaborador" in out.columns:
+        out["Colaborador"] = out["Colaborador"].map(
+            lambda x: "Cobertura (setor)" if x == "COBERTURA" else (employee_names.get(x, x) if employee_names else x)
+        )
     return out

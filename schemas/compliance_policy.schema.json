@@ -1,7 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://horario.local/schemas/compliance_policy.schema.json",
-  "title": "Escala Caixa Compliance Policy",
+  "title": "EscalaFlow Compliance Policy",
   "description": "Policy-as-code contract for schedule compliance validation and recommendation engine.",
   "type": "object",
   "additionalProperties": false,

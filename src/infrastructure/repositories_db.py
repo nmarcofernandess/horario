@@ -2,9 +2,9 @@ from typing import List, Dict, Optional
 from datetime import date
 from sqlalchemy.orm import Session
 import pandas as pd
-from src.domain.models import Employee, PreferenceRequest, RequestType, RequestDecision, Shift, ShiftDayScope
+from src.domain.models import Employee, PreferenceRequest, RequestType, RequestDecision, Shift, ShiftDayScope, ScheduleException, ExceptionType, DemandSlot
 from src.infrastructure.database.orm_models import EmployeeORM, PreferenceORM, SectorORM, ContractORM
-from src.infrastructure.database.extended_orm import ShiftORM, CycleTemplateORM, SundayRotationORM
+from src.infrastructure.database.extended_orm import ShiftORM, CycleTemplateORM, SundayRotationORM, ExceptionORM, DemandProfileORM
 
 class SqlAlchemyRepository:
     def __init__(self, session: Session):
@@ -112,6 +112,110 @@ class SqlAlchemyRepository:
              pref.decision = decision.value
              pref.decision_reason = reason
              self.session.commit()
+
+    # Exceptions (férias, atestado, trocas, bloqueios)
+    def load_exceptions(self, sector_id: str = None, period_start=None, period_end=None) -> list:
+        """Carrega exceções, opcionalmente filtradas por setor e período."""
+        q = self.session.query(ExceptionORM)
+        if sector_id:
+            q = q.filter(ExceptionORM.sector_id == sector_id)
+        if period_start:
+            q = q.filter(ExceptionORM.exception_date >= period_start)
+        if period_end:
+            q = q.filter(ExceptionORM.exception_date <= period_end)
+        rows = q.all()
+        return [
+            ScheduleException(
+                sector_id=r.sector_id,
+                employee_id=r.employee_id,
+                exception_date=r.exception_date,
+                exception_type=ExceptionType(r.exception_type),
+                note=r.note or ""
+            )
+            for r in rows
+        ]
+
+    def add_exception(self, exc: ScheduleException):
+        """Adiciona exceção (evita duplicata por sector+employee+date+type)."""
+        existing = self.session.query(ExceptionORM).filter(
+            ExceptionORM.sector_id == exc.sector_id,
+            ExceptionORM.employee_id == exc.employee_id,
+            ExceptionORM.exception_date == exc.exception_date,
+            ExceptionORM.exception_type == exc.exception_type.value,
+        ).first()
+        if not existing:
+            self.session.add(ExceptionORM(
+                sector_id=exc.sector_id,
+                employee_id=exc.employee_id,
+                exception_date=exc.exception_date,
+                exception_type=exc.exception_type.value,
+                note=exc.note
+            ))
+            self.session.commit()
+
+    def remove_exception(self, sector_id: str, employee_id: str, exception_date, exception_type: str):
+        """Remove exceção específica."""
+        self.session.query(ExceptionORM).filter(
+            ExceptionORM.sector_id == sector_id,
+            ExceptionORM.employee_id == employee_id,
+            ExceptionORM.exception_date == exception_date,
+            ExceptionORM.exception_type == exception_type,
+        ).delete()
+        self.session.commit()
+
+    # Demand profile (cobertura por faixa horária)
+    def load_demand_profile(self, sector_id: str, period_start=None, period_end=None) -> list:
+        """Carrega demand_profile para validação de cobertura."""
+        q = self.session.query(DemandProfileORM).filter(DemandProfileORM.sector_id == sector_id)
+        if period_start:
+            q = q.filter(DemandProfileORM.work_date >= period_start)
+        if period_end:
+            q = q.filter(DemandProfileORM.work_date <= period_end)
+        rows = q.all()
+        return [
+            DemandSlot(
+                sector_id=r.sector_id,
+                work_date=r.work_date,
+                slot_start=r.slot_start,
+                min_required=r.min_required,
+            )
+            for r in rows
+        ]
+
+    def add_demand_slot(self, slot: DemandSlot):
+        """Adiciona slot de demanda (evita duplicata)."""
+        existing = self.session.query(DemandProfileORM).filter(
+            DemandProfileORM.sector_id == slot.sector_id,
+            DemandProfileORM.work_date == slot.work_date,
+            DemandProfileORM.slot_start == slot.slot_start,
+        ).first()
+        if not existing:
+            self.session.add(DemandProfileORM(
+                sector_id=slot.sector_id,
+                work_date=slot.work_date,
+                slot_start=slot.slot_start,
+                min_required=slot.min_required,
+            ))
+            self.session.commit()
+
+    def save_demand_profile_bulk(self, items: list):
+        """Substitui demand_profile do setor/período por nova lista."""
+        if not items:
+            return
+        sector_id = items[0].sector_id
+        dates = {i.work_date for i in items}
+        self.session.query(DemandProfileORM).filter(
+            DemandProfileORM.sector_id == sector_id,
+            DemandProfileORM.work_date.in_(dates),
+        ).delete(synchronize_session=False)
+        for slot in items:
+            self.session.add(DemandProfileORM(
+                sector_id=slot.sector_id,
+                work_date=slot.work_date,
+                slot_start=slot.slot_start,
+                min_required=slot.min_required,
+            ))
+        self.session.commit()
 
     # Helpers for existing pipeline (Sunday Rotation / Template)
     # These are still file-based or could be moved to DB tables (Phase 2)

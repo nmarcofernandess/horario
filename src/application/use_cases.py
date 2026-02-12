@@ -9,6 +9,7 @@ from src.domain.policy_loader import PolicyLoader
 from src.domain.engines import CycleGenerator, PolicyEngine
 from src.infrastructure.repositories_db import SqlAlchemyRepository
 from src.infrastructure.parsers.legacy.csv_import import LegacyCSVImporter
+from src.infrastructure.presenters.export_calendar import export_calendar_files
 
 class ValidationOrchestrator:
     def __init__(
@@ -108,24 +109,70 @@ class ValidationOrchestrator:
                 new_mins = int(target_shift.minutes) if target_shift else 480
                 final_assignments.loc[mask, ["shift_code", "minutes", "source_rule"]] = [pref.target_shift_code, new_mins, "PREFERENCE_APPLIED"]
                 processed_requests.append({"request_id": pref.request_id, "applied": True})
-        
+
+        # 5b. Exceptions: aplicar férias, atestado, trocas, bloqueios (convertem WORK -> ABSENCE)
+        exceptions = self.repo.load_exceptions(
+            sector_id=context.sector_id,
+            period_start=context.period_start,
+            period_end=context.period_end,
+        )
+        exceptions_applied = 0
+        for exc in exceptions:
+            mask = (final_assignments["employee_id"] == exc.employee_id) & \
+                   (pd.to_datetime(final_assignments["work_date"]) == pd.Timestamp(exc.exception_date))
+            if mask.any():
+                # Converte WORK em ABSENCE (ou FOLGA se já era folga — mantém)
+                work_mask = mask & (final_assignments["status"] == "WORK")
+                if work_mask.any():
+                    final_assignments.loc[work_mask, ["status", "shift_code", "minutes", "source_rule"]] = [
+                        "ABSENCE", "", 0, f"EXCEPTION_{exc.exception_type.value}"
+                    ]
+                    exceptions_applied += 1
+
         # 6. Violations — contract_targets do DB (employee -> meta semanal)
         contract_targets = self.repo.load_contract_targets(context.sector_id)
         violations_cons = self.policy_engine.validate_consecutive_days(final_assignments)
         violations_hours = self.policy_engine.validate_weekly_hours(final_assignments, contract_targets)
-        
-        violations = violations_cons + violations_hours
+        violations_intershift = self.policy_engine.validate_intershift_rest(
+            final_assignments, policy.shifts, policy.constraints
+        )
+        demand_slots = self.repo.load_demand_profile(
+            context.sector_id, context.period_start, context.period_end
+        )
+        violations_demand = self.policy_engine.validate_demand_coverage(
+            final_assignments, demand_slots, policy.shifts
+        )
+
+        violations = violations_cons + violations_hours + violations_intershift + violations_demand
         
         # 7. Persist Results
-        # Export needs list of dicts or DF. The engine usage returns DF.
-        # _export_results expects objects, let's adjust it to accept DF or convert
         self._export_results_df(final_assignments, processed_requests, violations, context)
-        
+
+        # 8. Export HTML/Markdown calendário + resumo semanal (PRD)
+        emp_names = {e.employee_id: e.name for e in self.repo.load_employees().values()}
+        week_def = getattr(policy.week_definition, "value", "MON_SUN") if hasattr(policy, "week_definition") else "MON_SUN"
+        export_paths = {}
+        try:
+            export_paths = export_calendar_files(
+                self.output_path,
+                final_assignments,
+                violations,
+                contract_targets,
+                context.period_start,
+                context.period_end,
+                employee_names=emp_names,
+                week_definition=week_def,
+            )
+        except Exception:
+            pass
+
         return {
             "status": "SUCCESS",
             "violations_count": len(violations),
             "assignments_count": len(final_assignments),
-            "preferences_processed": len(processed_requests)
+            "preferences_processed": len(processed_requests),
+            "exceptions_applied": exceptions_applied,
+            "export_paths": export_paths,
         }
 
     def _export_results_df(self, assignments_df, requests, violations, context):

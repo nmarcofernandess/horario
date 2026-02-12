@@ -31,3 +31,24 @@ class SundayRotationORM(Base):
     employee_id = Column(String, ForeignKey("employees.employee_id"), nullable=False)
     sunday_date = Column(Date, nullable=False)
     folga_date = Column(Date, nullable=True)
+
+
+class ExceptionORM(Base):
+    """Exceções: férias, atestado, trocas, bloqueios — removem colaborador da escala na data."""
+    __tablename__ = "exceptions"
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    sector_id = Column(String, nullable=False)
+    employee_id = Column(String, ForeignKey("employees.employee_id"), nullable=False)
+    exception_date = Column(Date, nullable=False)
+    exception_type = Column(String, nullable=False)  # VACATION, MEDICAL_LEAVE, SWAP, BLOCK
+    note = Column(String, nullable=True)
+
+
+class DemandProfileORM(Base):
+    """Cobertura mínima por faixa horária (sector_id + date + slot_start)."""
+    __tablename__ = "demand_profile"
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    sector_id = Column(String, nullable=False)
+    work_date = Column(Date, nullable=False)
+    slot_start = Column(String, nullable=False)  # "08:00", "08:30", ...
+    min_required = Column(Integer, nullable=False)
