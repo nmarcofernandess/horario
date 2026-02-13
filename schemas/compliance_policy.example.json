@@ -9,9 +9,9 @@
     "city_name": "Maringa",
     "sector": "Comercio varejista",
     "cnae": "4711-3/02",
-    "collective_agreement_id": "CCT_SUPERMERCADO_FERNANDES_PR_2026H1_DRAFT",
-    "legal_validation_note": "Preset Fernandes com base operacional; validacao juridica final ainda pendente.",
-    "sunday_holiday_legal_validated": false
+    "collective_agreement_id": "CCT_SUPERMERCADO_FERNANDES_PR_2026H1_FINAL",
+    "legal_validation_note": "Ajustado conforme CLT Art. 386 (Mulheres 1:1) e Lei 10.101/2000 (Homens 1:2).",
+    "sunday_holiday_legal_validated": true
   },
   "validity": {
     "effective_from": "2026-02-01",
@@ -73,7 +73,7 @@
       {
         "type": "FIXED_CONSTRAINT",
         "weight": 1000,
-        "description": "Lei e disponibilidade pactuada"
+        "description": "Lei e disponibilidade pactuada (R1..R6)"
       },
       {
         "type": "MANUAL_OVERRIDE",
@@ -84,7 +84,7 @@
   },
   "contracts": [
     {
-      "contract_code": "H44_CAIXA",
+      "contract_code": "H44_CAIXA_FEM",
       "weekly_minutes": 2640,
       "employees": [
         "CLEONICE",
@@ -99,10 +99,25 @@
         "CAI6"
       ],
       "sunday_mode": "WORK_WITH_COMPENSATION",
-      "max_sundays_per_4_weeks": 2
+      "max_consecutive_sundays": 1
     },
     {
-      "contract_code": "H36_CAIXA",
+      "contract_code": "H44_CAIXA_MASC",
+      "weekly_minutes": 2640,
+      "employees": [],
+      "allowed_weekday_shift_codes": [
+        "CAI1",
+        "CAI2",
+        "CAI3",
+        "CAI4",
+        "CAI5",
+        "CAI6"
+      ],
+      "sunday_mode": "WORK_WITH_COMPENSATION",
+      "max_consecutive_sundays": 2
+    },
+    {
+      "contract_code": "H36_CAIXA_MASC",
       "weekly_minutes": 2160,
       "employees": [
         "GABRIEL"
@@ -116,10 +131,10 @@
         "CAI6"
       ],
       "sunday_mode": "WORK_WITH_COMPENSATION",
-      "max_sundays_per_4_weeks": 2
+      "max_consecutive_sundays": 2
     },
     {
-      "contract_code": "H30_CAIXA",
+      "contract_code": "H30_CAIXA_FEM",
       "weekly_minutes": 1800,
       "employees": [
         "MAYUMI",
@@ -135,7 +150,7 @@
         "CAI6"
       ],
       "sunday_mode": "WORK_WITH_COMPENSATION",
-      "max_sundays_per_4_weeks": 2
+      "max_consecutive_sundays": 1
     }
   ],
   "shift_catalog": {
@@ -252,8 +267,8 @@
       "6"
     ],
     "marker_semantics": {
-      "5": "COMPENSA_48H",
-      "6": "ESCALA_6X1"
+      "5": "FOLGA_DSR",
+      "6": "TRABALHO"
     }
   },
   "legal_references": [
@@ -313,5 +328,10 @@
         "severity": "LOW"
       }
     ]
+  },
+  "runtime_mode": {
+    "mode": "NORMAL",
+    "updated_at": "2026-02-13T02:42:59+00:00",
+    "updated_by_role": "ADMIN"
   }
 }

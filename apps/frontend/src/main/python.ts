@@ -24,7 +24,7 @@ export async function startPythonAPI(): Promise<void> {
     console.error('Python API spawn error:', err)
   })
 
-  pythonProcess.on('exit', (code) => {
+  pythonProcess.on('exit', () => {
     pythonProcess = null
   })
 

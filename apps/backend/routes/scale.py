@@ -154,7 +154,7 @@ def _collect_external_dependencies(policy_data: dict) -> list[str]:
 
     cct_id = str(policy_data.get("jurisdiction", {}).get("collective_agreement_id", ""))
     if "PLACEHOLDER" in cct_id.upper():
-        pending.append("Base coletiva (CCT) está em placeholder; validação jurídica de domingo/feriado não está fechada.")
+        pending.append("Acordo Coletivo (CCT) pendente de identificação formal; governança jurídica incompleta.")
     if not cct_id.strip():
         pending.append("Base coletiva (CCT) está vazia; informe o identificador vigente.")
 
@@ -243,7 +243,7 @@ def _build_preflight(req: ScaleGenerateRequest, repo: SqlAlchemyRepository) -> P
         PreflightIssue(
             code=f"LEGAL_SOFT_{idx + 1}",
             message=message,
-            recommended_action="Registrar decisão na Governança E4 e seguir com justificativa se necessário.",
+            recommended_action="Registrar decisão na aba de Governança e seguir com justificativa se necessário.",
         )
         for idx, message in enumerate(legal_pending)
     ]

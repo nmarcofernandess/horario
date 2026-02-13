@@ -145,6 +145,9 @@ class ValidationOrchestrator:
         violations_daily = self.policy_engine.validate_daily_minutes(
             final_assignments, policy.constraints
         )
+        violations_sunday = self.policy_engine.validate_sunday_rotation(
+            final_assignments, contract_targets
+        )
         demand_slots = self.repo.load_demand_profile(
             context.sector_id, context.period_start, context.period_end
         )
@@ -152,7 +155,7 @@ class ValidationOrchestrator:
             final_assignments, demand_slots, policy.shifts
         )
 
-        violations = violations_cons + violations_hours + violations_intershift + violations_daily + violations_demand
+        violations = violations_cons + violations_hours + violations_intershift + violations_daily + violations_demand + violations_sunday
         
         # 7. Persist Results (apenas geração oficial)
         if persist_results:

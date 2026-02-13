@@ -15,4 +15,14 @@ module.exports = {
       { allowConstantExport: true },
     ],
   },
+  overrides: [
+    {
+      files: ['src/renderer/components/ui/**/*.tsx'],
+      rules: { 'react-refresh/only-export-components': 'off' },
+    },
+    {
+      files: ['src/renderer/components/theme-provider.tsx', 'src/renderer/components/tour.tsx'],
+      rules: { 'react-refresh/only-export-components': 'off' },
+    },
+  ],
 }

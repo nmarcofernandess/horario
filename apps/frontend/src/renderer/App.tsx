@@ -10,12 +10,32 @@ import { ConfiguracaoPage } from '@/pages/ConfiguracaoPage'
 import { PerfilPage } from '@/pages/PerfilPage'
 import { Toaster } from '@/components/ui/sonner'
 import type { Page } from '@/types'
+import { TOUR_NAVIGATE_EVENT } from '@/lib/tour-constants'
+import { useEffect } from 'react'
 
 function App() {
   const [currentPage, setCurrentPage] = useState<Page>('escala')
 
   const onNavigate = useCallback((page: Page) => {
     setCurrentPage(page)
+  }, [])
+
+  useEffect(() => {
+    const handler = (event: Event) => {
+      const customEvent = event as CustomEvent<Page>
+      const nextPage = customEvent.detail
+      if (
+        nextPage === 'escala' ||
+        nextPage === 'colaboradores' ||
+        nextPage === 'pedidos' ||
+        nextPage === 'configuracao' ||
+        nextPage === 'perfil'
+      ) {
+        setCurrentPage(nextPage)
+      }
+    }
+    window.addEventListener(TOUR_NAVIGATE_EVENT, handler)
+    return () => window.removeEventListener(TOUR_NAVIGATE_EVENT, handler)
   }, [])
 
   return (

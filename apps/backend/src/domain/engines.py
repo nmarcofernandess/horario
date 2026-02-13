@@ -284,6 +284,58 @@ class PolicyEngine:
             )
         return violations
 
+    def validate_sunday_rotation(
+        self,
+        day_assignments: pd.DataFrame,
+        contract_rules: Dict[str, Any],
+    ) -> List[Violation]:
+        """
+        R3: Valida rodízio de domingos conforme lei (CLT 386 e Lei 10.101/2000).
+        Busca 'max_consecutive_sundays' no contract_rules.
+        - Mulheres: 1:2 (máx 1 domingo trabalhado)
+        - Homens: 1:3 (máx 2 domingos trabalhados)
+        """
+        violations = []
+        if day_assignments.empty:
+            return violations
+
+        df = day_assignments.copy()
+        df["work_date"] = pd.to_datetime(df["work_date"])
+        sundays = df[df["work_date"].dt.weekday == 6].sort_values(["employee_id", "work_date"])
+
+        for employee_id, group in sundays.groupby("employee_id"):
+            # Pega regra do contrato do colaborador
+            profile = contract_rules.get(employee_id, {})
+            max_consecutive = int(profile.get("max_consecutive_sundays", 2))
+            contract_code = str(profile.get("contract_code", "UNKNOWN"))
+
+            consecutive_count = 0
+            for _, row in group.iterrows():
+                if row["status"] == "WORK":
+                    consecutive_count += 1
+                    if consecutive_count > max_consecutive:
+                        violations.append(
+                            Violation(
+                                employee_id=employee_id,
+                                rule_code="R3_SUNDAY_ROTATION",
+                                severity=ViolationSeverity.CRITICAL,
+                                date_start=row["work_date"].date(),
+                                date_end=row["work_date"].date(),
+                                detail=(
+                                    f"[{contract_code}] Domingo trabalhado consecutivo #{consecutive_count} "
+                                    f"(Máximo permitido pela lei: {max_consecutive})"
+                                ),
+                                evidence={
+                                    "consecutive_count": consecutive_count,
+                                    "max_allowed": max_consecutive,
+                                    "contract_code": contract_code,
+                                },
+                            )
+                        )
+                else:
+                    consecutive_count = 0
+        return violations
+
     def _shift_to_datetime_range(self, shift: Shift, work_date: date) -> tuple:
         """Retorna (start_dt, end_dt) para o turno na data."""
         default_start = "08:00"

@@ -24,8 +24,8 @@ async function fetchApi<T>(path: string, options?: RequestInit): Promise<T> {
       typeof detail === 'string'
         ? detail
         : (detail && typeof detail === 'object' && 'message' in detail && typeof detail.message === 'string'
-            ? detail.message
-            : res.statusText)
+          ? detail.message
+          : res.statusText)
     throw new ApiError(message, res.status, detail)
   }
   return res.json()

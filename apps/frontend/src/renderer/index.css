@@ -131,3 +131,4 @@
 .sidebar-transition {
   transition: width 200ms ease-linear;
 }
+.no-drag { -webkit-app-region: no-drag; }

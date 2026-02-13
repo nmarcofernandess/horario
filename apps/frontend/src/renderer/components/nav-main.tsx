@@ -16,6 +16,15 @@ import {
   SidebarMenuSubButton,
   SidebarMenuSubItem,
 } from "@/components/ui/sidebar"
+import { TOUR_STEP_IDS } from "@/lib/tour-constants"
+
+function getTourNavId(url: string) {
+  if (url === "escala") return TOUR_STEP_IDS.NAV_ESCALA
+  if (url === "colaboradores") return TOUR_STEP_IDS.NAV_COLABORADORES
+  if (url === "pedidos") return TOUR_STEP_IDS.NAV_PEDIDOS
+  if (url === "configuracao") return TOUR_STEP_IDS.NAV_CONFIGURACAO
+  return undefined
+}
 
 export function NavMain({
   items,
@@ -41,7 +50,9 @@ export function NavMain({
             return (
               <SidebarMenuItem key={item.title}>
                 <SidebarMenuButton
+                  id={getTourNavId(item.url)}
                   isActive={item.isActive}
+                  className="no-drag"
                   onClick={() => onNavigate?.(item.url)}
                 >
                   {item.icon && <item.icon className="size-4" />}
@@ -60,7 +71,7 @@ export function NavMain({
             >
               <SidebarMenuItem>
                 <CollapsibleTrigger asChild>
-                  <SidebarMenuButton tooltip={item.title} isActive={item.isActive}>
+                  <SidebarMenuButton tooltip={item.title} isActive={item.isActive} className="no-drag">
                     {item.icon && <item.icon className="size-4" />}
                     <span>{item.title}</span>
                     <ChevronRight className="ml-auto transition-transform duration-200 group-data-[state=open]/collapsible:rotate-90" />

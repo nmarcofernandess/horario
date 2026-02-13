@@ -28,7 +28,10 @@ export interface TourStep {
   selectorId: string
   width?: number
   height?: number
+  cardWidth?: number
+  cardHeight?: number
   onClickWithinArea?: () => void
+  onEnter?: () => void
   position?: "top" | "bottom" | "left" | "right"
 }
 
@@ -56,8 +59,8 @@ interface TourProviderProps {
 const TourContext = createContext<TourContextType | null>(null)
 
 const PADDING = 16
-const CONTENT_WIDTH = 300
-const CONTENT_HEIGHT = 200
+const DEFAULT_CARD_WIDTH = 320
+const DEFAULT_CARD_HEIGHT = 220
 
 function getElementPosition(id: string) {
   const element = document.getElementById(id)
@@ -73,7 +76,9 @@ function getElementPosition(id: string) {
 
 function calculateContentPosition(
   elementPos: { top: number; left: number; width: number; height: number },
-  position: "top" | "bottom" | "left" | "right" = "bottom"
+  position: "top" | "bottom" | "left" | "right" = "bottom",
+  cardWidth = DEFAULT_CARD_WIDTH,
+  cardHeight = DEFAULT_CARD_HEIGHT
 ) {
   const viewportWidth = window.innerWidth
   const viewportHeight = window.innerHeight
@@ -83,34 +88,34 @@ function calculateContentPosition(
 
   switch (position) {
     case "top":
-      top = elementPos.top - CONTENT_HEIGHT - PADDING
-      left = elementPos.left + elementPos.width / 2 - CONTENT_WIDTH / 2
+      top = elementPos.top - cardHeight - PADDING
+      left = elementPos.left + elementPos.width / 2 - cardWidth / 2
       break
     case "bottom":
       top = elementPos.top + elementPos.height + PADDING
-      left = elementPos.left + elementPos.width / 2 - CONTENT_WIDTH / 2
+      left = elementPos.left + elementPos.width / 2 - cardWidth / 2
       break
     case "left":
-      left = elementPos.left - CONTENT_WIDTH - PADDING
-      top = elementPos.top + elementPos.height / 2 - CONTENT_HEIGHT / 2
+      left = elementPos.left - cardWidth - PADDING
+      top = elementPos.top + elementPos.height / 2 - cardHeight / 2
       break
     case "right":
       left = elementPos.left + elementPos.width + PADDING
-      top = elementPos.top + elementPos.height / 2 - CONTENT_HEIGHT / 2
+      top = elementPos.top + elementPos.height / 2 - cardHeight / 2
       break
   }
 
   return {
     top: Math.max(
       PADDING,
-      Math.min(top, viewportHeight - CONTENT_HEIGHT - PADDING)
+      Math.min(top, viewportHeight - cardHeight - PADDING)
     ),
     left: Math.max(
       PADDING,
-      Math.min(left, viewportWidth - CONTENT_WIDTH - PADDING)
+      Math.min(left, viewportWidth - cardWidth - PADDING)
     ),
-    width: CONTENT_WIDTH,
-    height: CONTENT_HEIGHT,
+    width: cardWidth,
+    height: cardHeight,
   }
 }
 
@@ -152,6 +157,11 @@ export function TourProvider({
       window.removeEventListener("scroll", updateElementPosition)
     }
   }, [updateElementPosition])
+
+  useEffect(() => {
+    if (currentStep < 0 || currentStep >= steps.length) return
+    steps[currentStep]?.onEnter?.()
+  }, [currentStep, steps])
 
   const nextStep = useCallback(async () => {
     setCurrentStep((prev) => {
@@ -219,7 +229,12 @@ export function TourProvider({
   const step = steps[currentStep]
   const contentPos =
     step && elementPosition
-      ? calculateContentPosition(elementPosition, step.position ?? "bottom")
+      ? calculateContentPosition(
+          elementPosition,
+          step.position ?? "bottom",
+          step.cardWidth ?? DEFAULT_CARD_WIDTH,
+          step.cardHeight ?? DEFAULT_CARD_HEIGHT
+        )
       : null
 
   return (

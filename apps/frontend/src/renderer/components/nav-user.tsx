@@ -1,8 +1,7 @@
 import {
-  BadgeCheck,
-  Monitor,
   ChevronsUpDown,
   HelpCircle,
+  Monitor,
   Moon,
   Sun,
   UserRound,
@@ -64,7 +63,7 @@ export function NavUser({
           <DropdownMenuTrigger asChild>
             <SidebarMenuButton
               size="lg"
-              className="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground"
+              className="no-drag data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground"
             >
               <Avatar className="h-8 w-8 rounded-lg">
                 <AvatarImage src={user.avatar} alt={user.name} />
@@ -118,10 +117,6 @@ export function NavUser({
             <DropdownMenuItem onClick={() => startTour()}>
               <HelpCircle className="size-4 text-foreground" />
               Como funciona
-            </DropdownMenuItem>
-            <DropdownMenuItem onClick={() => onNavigate?.("perfil")}>
-              <BadgeCheck className="size-4 text-foreground" />
-              Editar nome e foto
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>

@@ -35,6 +35,7 @@ class ContractORM(Base):
     sector_id = Column(String, ForeignKey("sectors.sector_id"), nullable=False)
     weekly_minutes = Column(Integer, nullable=False)
     sunday_mode = Column(String, default="WORK_WITH_COMPENSATION")
+    max_consecutive_sundays = Column(Integer, default=2)
     allowed_shifts_json = Column(JSON, default=list) # List of shift codes
     
     sector = relationship("SectorORM", back_populates="contracts")

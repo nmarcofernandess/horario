@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from 'react'
 import { z } from 'zod'
-import { Card, CardAction, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Card, CardAction, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import {
   Table,
@@ -33,6 +33,17 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog'
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from '@/components/ui/form'
+import { FormSection } from '@/components/forms/FormSection'
+import { useForm } from 'react-hook-form'
+import { zodResolver } from '@hookform/resolvers/zod'
 import { ErrorState } from '@/components/feedback-state'
 import { ShiftSection } from '@/components/configuracao/ShiftSection'
 import { TemplateSection } from '@/components/configuracao/TemplateSection'
@@ -49,17 +60,17 @@ import { toast } from 'sonner'
 
 const WEEKDAYS = ['SEG', 'TER', 'QUA', 'QUI', 'SEX', 'SAB'] as const
 
+const shiftFormSchema = z.object({
+  shift_code: z.string().min(1, 'Código obrigatório'),
+  minutes: z.coerce.number().min(1, 'Duração obrigatória'),
+  day_scope: z.string(),
+})
+
 type Shift = { shift_code: string; sector_id: string; minutes: number; day_scope: string }
 type Exception = { sector_id: string; employee_id: string; exception_date: string; exception_type: string; note: string | null }
 type DemandSlot = { sector_id: string; work_date: string; slot_start: string; min_required: number }
 type Employee = { employee_id: string; name: string }
 type RotationRow = { scale_index: number; employee_id: string; sunday_date: string; folga_date: string | null }
-
-const shiftSchema = z.object({
-  shift_code: z.string().trim().min(2, 'Código do turno é obrigatório.'),
-  minutes: z.number().int().min(0, 'Duração deve ser maior ou igual a 0.'),
-  day_scope: z.string().min(1, 'Tipo do turno é obrigatório.'),
-})
 
 const rotationSchema = z.object({
   scale_index: z.number().int().min(1, 'Posição deve ser maior ou igual a 1.'),
@@ -134,8 +145,6 @@ function formatDayScope(s: string) {
 export function ConfiguracaoPage() {
   const {
     shifts,
-    newShift,
-    setNewShift,
     editingShiftCode,
     loadShifts: loadShiftsRaw,
     resetShiftForm,
@@ -176,6 +185,35 @@ export function ConfiguracaoPage() {
     loadDemand: loadDemandRaw,
     startEditDemand,
   } = useDemand()
+  const shiftForm = useForm<z.infer<typeof shiftFormSchema>>({
+    resolver: zodResolver(shiftFormSchema),
+    defaultValues: {
+      shift_code: '',
+      minutes: 0,
+      day_scope: 'WEEKDAY',
+    },
+  })
+
+  // Sync with editing state from useShifts
+  useEffect(() => {
+    if (editingShiftCode) {
+      const shift = shifts.find((s) => s.shift_code === editingShiftCode)
+      if (shift) {
+        shiftForm.reset({
+          shift_code: shift.shift_code,
+          minutes: shift.minutes,
+          day_scope: shift.day_scope,
+        })
+      }
+    } else {
+      shiftForm.reset({
+        shift_code: '',
+        minutes: 0,
+        day_scope: 'WEEKDAY',
+      })
+    }
+  }, [editingShiftCode, shifts, shiftForm])
+
   const [employees, setEmployees] = useState<Employee[]>([])
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -279,6 +317,7 @@ export function ConfiguracaoPage() {
     loadGovernance()
     loadRuntimeMode()
     loadGovernanceAudit()
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- run once on mount
   }, [])
 
   const handleSaveRuntimeMode = async () => {
@@ -401,11 +440,11 @@ export function ConfiguracaoPage() {
         prev.map((row, idx) =>
           idx === editingRotationIndex
             ? {
-                scale_index: newRotation.scale_index,
-                employee_id: newRotation.employee_id,
-                sunday_date: newRotation.sunday_date,
-                folga_date: newRotation.folga_date || null,
-              }
+              scale_index: newRotation.scale_index,
+              employee_id: newRotation.employee_id,
+              sunday_date: newRotation.sunday_date,
+              folga_date: newRotation.folga_date || null,
+            }
             : row
         )
       )
@@ -596,37 +635,31 @@ export function ConfiguracaoPage() {
     }
   }
 
-  const handleSaveShift = async (e: React.FormEvent) => {
-    e.preventDefault()
-    if (!newShift.shift_code && !editingShiftCode) return
-    const minutes = parseInt(newShift.minutes, 10) || 0
-    const parsed = shiftSchema.safeParse({
-      shift_code: newShift.shift_code || editingShiftCode || '',
-      minutes,
-      day_scope: newShift.day_scope,
-    })
-    if (!parsed.success) {
-      setError(parsed.error.issues[0]?.message || 'Dados de turno inválidos.')
-      return
-    }
-    setLoading(true)
-    setError(null)
+  const handleSaveShift = async (values: z.infer<typeof shiftFormSchema>) => {
     try {
+      setLoading(true)
       if (editingShiftCode) {
-        await api.shifts.update(editingShiftCode, { minutes, day_scope: newShift.day_scope })
-      } else {
-        await api.shifts.create({
-          shift_code: newShift.shift_code.trim(),
-          minutes,
-          day_scope: newShift.day_scope,
+        // Edit existing
+        await api.config.updateShift(editingShiftCode, {
+          shift_code: values.shift_code,
+          minutes: Number(values.minutes),
+          day_scope: values.day_scope,
         })
+        toast.success(`Turno ${values.shift_code} atualizado!`)
+        resetShiftForm() // Clears editing state
+      } else {
+        // Create new
+        await api.config.createShift({
+          shift_code: values.shift_code,
+          minutes: Number(values.minutes),
+          day_scope: values.day_scope,
+        })
+        toast.success(`Turno ${values.shift_code} criado!`)
+        shiftForm.reset() // Clear form for new entry
       }
-      resetShiftForm()
-      await loadShifts()
-      toast.success('Turno salvo com sucesso.')
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Erro ao salvar turno')
-      toast.error('Não foi possível salvar o turno.')
+      loadShifts() // Reload list
+    } catch (e) {
+      toast.error('Erro ao salvar turno')
     } finally {
       setLoading(false)
     }
@@ -712,52 +745,109 @@ export function ConfiguracaoPage() {
           <TabsTrigger value="demand">Demanda por horário</TabsTrigger>
           <TabsTrigger value="governanca">Governança</TabsTrigger>
         </TabsList>
-        <TabsContent value="turnos" className="mt-4">
-        <ShiftSection>
-          <Card>
-            <CardHeader>
-              <CardTitle>Turnos</CardTitle>
-              <CardDescription>Horários de cada turno (manhã, tarde, domingo).</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <form onSubmit={handleSaveShift} className="flex flex-wrap gap-4 items-end p-4 border rounded-lg bg-muted/30">
-                <div className="space-y-2">
-                  <Label htmlFor="shift-code">Código</Label>
-                  <Input
-                    id="shift-code"
-                    value={newShift.shift_code}
-                    onChange={(e) => setNewShift({ ...newShift, shift_code: e.target.value.toUpperCase() })}
-                    placeholder="CAI1"
-                    className="w-[120px]"
-                    disabled={!!editingShiftCode}
-                    required
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="shift-minutes">Duração (min)</Label>
-                  <Input
-                    id="shift-minutes"
-                    type="number"
-                    min={0}
-                    value={newShift.minutes}
-                    onChange={(e) => setNewShift({ ...newShift, minutes: e.target.value })}
-                    className="w-[120px]"
-                    required
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="shift-day-scope">Tipo</Label>
-                  <Select value={newShift.day_scope} onValueChange={(v) => setNewShift({ ...newShift, day_scope: v })}>
-                    <SelectTrigger id="shift-day-scope" className="w-[160px]">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="WEEKDAY">Dia útil</SelectItem>
-                      <SelectItem value="SUNDAY">Domingo</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                <Button type="submit" disabled={loading}>
+        <TabsContent value="turnos">
+          <ShiftSection>
+            <Card>
+              <CardHeader>
+                <CardTitle>Turnos</CardTitle>
+                <CardDescription>Horários de cada turno (manhã, tarde, domingo).</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <Form {...shiftForm}>
+                  <form id="shift-form" onSubmit={shiftForm.handleSubmit(handleSaveShift)} className="grid w-full gap-4 sm:grid-cols-2 md:grid-cols-3">
+                    <FormField
+                      control={shiftForm.control}
+                      name="shift_code"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormSection>
+                            <FormLabel>Código</FormLabel>
+                            <FormControl>
+                              <Input placeholder="CAI1" disabled={!!editingShiftCode} {...field} onChange={e => field.onChange(e.target.value.toUpperCase())} />
+                            </FormControl>
+                          </FormSection>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={shiftForm.control}
+                      name="minutes"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormSection>
+                            <FormLabel>Duração (min)</FormLabel>
+                            <FormControl>
+                              <Input type="number" min={0} {...field} />
+                            </FormControl>
+                          </FormSection>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={shiftForm.control}
+                      name="day_scope"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormSection>
+                            <FormLabel>Tipo</FormLabel>
+                            <Select onValueChange={field.onChange} defaultValue={field.value} value={field.value}>
+                              <FormControl>
+                                <SelectTrigger className="w-full">
+                                  <SelectValue placeholder="Selecione" />
+                                </SelectTrigger>
+                              </FormControl>
+                              <SelectContent>
+                                <SelectItem value="WEEKDAY">Dia útil</SelectItem>
+                                <SelectItem value="SUNDAY">Domingo</SelectItem>
+                              </SelectContent>
+                            </Select>
+                          </FormSection>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </form>
+                </Form>
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Código</TableHead>
+                      <TableHead>Duração</TableHead>
+                      <TableHead>Tipo</TableHead>
+                      <TableHead>Ações</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {shifts.length === 0 ? (
+                      <TableRow>
+                        <TableCell colSpan={4} className="text-muted-foreground">
+                          Nenhum turno cadastrado. Adicione acima.
+                        </TableCell>
+                      </TableRow>
+                    ) : (
+                      shifts.map((s) => (
+                        <TableRow key={s.shift_code}>
+                          <TableCell>{s.shift_code}</TableCell>
+                          <TableCell>{formatMinutes(s.minutes)}</TableCell>
+                          <TableCell>{formatDayScope(s.day_scope)}</TableCell>
+                          <TableCell className="space-x-2">
+                            <Button size="sm" variant="outline" onClick={() => handleEditShift(s)}>
+                              Editar
+                            </Button>
+                            <Button size="sm" variant="destructive" onClick={() => handleDeleteShift(s.shift_code)}>
+                              Remover
+                            </Button>
+                          </TableCell>
+                        </TableRow>
+                      ))
+                    )}
+                  </TableBody>
+                </Table>
+              </CardContent>
+              <CardFooter>
+                <Button type="submit" form="shift-form" disabled={loading}>
                   {loading ? 'Salvando…' : editingShiftCode ? 'Salvar edição' : 'Adicionar'}
                 </Button>
                 {editingShiftCode && (
@@ -765,288 +855,302 @@ export function ConfiguracaoPage() {
                     Cancelar edição
                   </Button>
                 )}
-              </form>
-              <Table>
-                <TableCaption>Catálogo de turnos ativos para o setor selecionado.</TableCaption>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Código</TableHead>
-                    <TableHead>Duração</TableHead>
-                    <TableHead>Tipo</TableHead>
-                    <TableHead>Ações</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {shifts.length === 0 ? (
-                    <TableRow>
-                      <TableCell colSpan={4} className="text-muted-foreground">
-                        Nenhum turno cadastrado. Adicione acima.
-                      </TableCell>
-                    </TableRow>
-                  ) : (
-                    shifts.map((s) => (
-                      <TableRow key={s.shift_code}>
-                        <TableCell>{s.shift_code}</TableCell>
-                        <TableCell>{formatMinutes(s.minutes)}</TableCell>
-                        <TableCell>{formatDayScope(s.day_scope)}</TableCell>
-                        <TableCell className="space-x-2">
-                          <Button size="sm" variant="outline" onClick={() => handleEditShift(s)}>
-                            Editar
-                          </Button>
-                          <Button size="sm" variant="destructive" onClick={() => handleDeleteShift(s.shift_code)}>
-                            Remover
-                          </Button>
-                        </TableCell>
-                      </TableRow>
-                    ))
-                  )}
-                </TableBody>
-              </Table>
-            </CardContent>
-          </Card>
-        </ShiftSection>
+              </CardFooter>
+            </Card>
+          </ShiftSection>
         </TabsContent>
-        <TabsContent value="mosaico" className="mt-4">
-        <TemplateSection>
-          <Card>
-            <CardHeader>
-              <CardTitle>Mosaico</CardTitle>
-              <CardDescription>Modelo padrão de turnos por dia da semana (SEG–SAB).</CardDescription>
-              <CardAction>
-                <Button variant="outline" size="sm" onClick={clearTemplateAll}>
-                  Limpar todo mosaico (local)
+        <TabsContent value="mosaico">
+          <TemplateSection>
+            <Card>
+              <CardHeader>
+                <CardTitle>Mosaico</CardTitle>
+                <CardDescription>Modelo padrão de turnos por dia da semana (SEG–SAB).</CardDescription>
+                <CardAction>
+                  <Button variant="outline" size="sm" onClick={clearTemplateAll}>
+                    Limpar todo mosaico (local)
+                  </Button>
+                </CardAction>
+              </CardHeader>
+              <CardContent>
+                <div className="overflow-x-auto">
+                  <Table>
+                    <TableCaption>Matriz semanal de turnos base por colaborador.</TableCaption>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead className="min-w-[140px]">Colaborador</TableHead>
+                        {WEEKDAYS.map((d) => (
+                          <TableHead key={d}>{d}</TableHead>
+                        ))}
+                        <TableHead>Ações</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {employees.map((emp) => (
+                        <TableRow key={emp.employee_id}>
+                          <TableCell className="font-medium">{emp.name}</TableCell>
+                          {WEEKDAYS.map((day) => (
+                            <TableCell key={day}>
+                              <Select
+                                value={getTemplateCell(emp.employee_id, day) || 'empty'}
+                                onValueChange={(v) => handleTemplateCellChange(emp.employee_id, day, v === 'empty' ? '' : v, shifts)}
+                              >
+                                <SelectTrigger className="h-8 w-[100px]">
+                                  <SelectValue placeholder="—" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  <SelectItem value="empty">—</SelectItem>
+                                  {shifts.filter((s) => s.day_scope === 'WEEKDAY' || s.day_scope === 'ANY').map((s) => (
+                                    <SelectItem key={s.shift_code} value={s.shift_code}>
+                                      {s.shift_code}
+                                    </SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
+                            </TableCell>
+                          ))}
+                          <TableCell>
+                            <Button size="sm" variant="outline" onClick={() => clearTemplateForEmployee(emp.employee_id)}>
+                              Limpar linha
+                            </Button>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
+                <Button onClick={handleSaveTemplate} disabled={loading} >
+                  {loading ? 'Salvando…' : 'Salvar mosaico'}
                 </Button>
-              </CardAction>
-            </CardHeader>
-            <CardContent>
-              <div className="overflow-x-auto">
+              </CardContent>
+            </Card>
+          </TemplateSection>
+        </TabsContent>
+        <TabsContent value="rodizio">
+          <RotationSection>
+            <Card>
+              <CardHeader>
+                <CardTitle>Rodízio de domingos</CardTitle>
+                <CardDescription>Ordem de quem trabalha aos domingos e como compensa folga.</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <form
+                  onSubmit={(e) => {
+                    e.preventDefault()
+                    handleAddRotation()
+                  }}
+                  className="grid grid-cols-1 md:grid-cols-12 gap-4 items-start p-4 border rounded-lg bg-muted/30 mb-4"
+                >
+                  <div className="space-y-2 md:col-span-1">
+                    <Label htmlFor="rotation-index">Posição</Label>
+                    <Input
+                      id="rotation-index"
+                      type="number"
+                      min={1}
+                      value={newRotation.scale_index}
+                      onChange={(e) => setNewRotation({ ...newRotation, scale_index: parseInt(e.target.value, 10) || 1 })}
+                      className="w-full"
+                    />
+                  </div>
+                  <div className="space-y-2 md:col-span-3">
+                    <Label htmlFor="rotation-employee">Colaborador</Label>
+                    <Select value={newRotation.employee_id} onValueChange={(v) => setNewRotation({ ...newRotation, employee_id: v })} required>
+                      <SelectTrigger id="rotation-employee" className="w-full">
+                        <SelectValue placeholder="Selecione" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {employees.map((e) => (
+                          <SelectItem key={e.employee_id} value={e.employee_id}>
+                            {e.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-2 md:col-span-3">
+                    <Label htmlFor="rotation-sunday">Domingo</Label>
+                    <DateInput
+                      id="rotation-sunday"
+                      value={newRotation.sunday_date}
+                      onChange={(e) => setNewRotation({ ...newRotation, sunday_date: e.target.value })}
+                      required
+                    />
+                  </div>
+                  <div className="space-y-2 md:col-span-3">
+                    <Label htmlFor="rotation-folga">Folga</Label>
+                    <DateInput
+                      id="rotation-folga"
+                      value={newRotation.folga_date}
+                      onChange={(e) => setNewRotation({ ...newRotation, folga_date: e.target.value })}
+                    />
+                  </div>
+                  <div className="md:col-span-2 space-y-2">
+                    <Label className="invisible">Adicionar</Label>
+                    <Button type="submit" className="w-full">
+                      {editingRotationIndex != null ? 'Salvar' : 'Adicionar'}
+                    </Button>
+                  </div>
+                  {editingRotationIndex != null && (
+                    <div className="md:col-span-12">
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={() => {
+                          setEditingRotationIndex(null)
+                          setNewRotation({ scale_index: 1, employee_id: '', sunday_date: '', folga_date: '' })
+                        }}
+                      >
+                        Cancelar edição
+                      </Button>
+                    </div>
+                  )}
+                </form>
                 <Table>
-                  <TableCaption>Matriz semanal de turnos base por colaborador.</TableCaption>
+                  <TableCaption>Entradas do rodízio de domingos e folgas associadas.</TableCaption>
                   <TableHeader>
                     <TableRow>
-                      <TableHead className="min-w-[140px]">Colaborador</TableHead>
-                      {WEEKDAYS.map((d) => (
-                        <TableHead key={d}>{d}</TableHead>
-                      ))}
+                      <TableHead>Posição</TableHead>
+                      <TableHead>Colaborador</TableHead>
+                      <TableHead>Domingo</TableHead>
+                      <TableHead>Folga</TableHead>
                       <TableHead>Ações</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {employees.map((emp) => (
-                      <TableRow key={emp.employee_id}>
-                        <TableCell className="font-medium">{emp.name}</TableCell>
-                        {WEEKDAYS.map((day) => (
-                          <TableCell key={day}>
-                            <Select
-                              value={getTemplateCell(emp.employee_id, day) || 'empty'}
-                              onValueChange={(v) => handleTemplateCellChange(emp.employee_id, day, v === 'empty' ? '' : v, shifts)}
-                            >
-                              <SelectTrigger className="h-8 w-[100px]">
-                                <SelectValue placeholder="—" />
-                              </SelectTrigger>
-                              <SelectContent>
-                                <SelectItem value="empty">—</SelectItem>
-                                {shifts.filter((s) => s.day_scope === 'WEEKDAY' || s.day_scope === 'ANY').map((s) => (
-                                  <SelectItem key={s.shift_code} value={s.shift_code}>
-                                    {s.shift_code}
-                                  </SelectItem>
-                                ))}
-                              </SelectContent>
-                            </Select>
-                          </TableCell>
-                        ))}
-                        <TableCell>
-                          <Button size="sm" variant="outline" onClick={() => clearTemplateForEmployee(emp.employee_id)}>
-                            Limpar linha
-                          </Button>
+                    {rotationRows.length === 0 ? (
+                      <TableRow>
+                        <TableCell colSpan={5} className="text-muted-foreground">
+                          Nenhum rodízio cadastrado ainda.
                         </TableCell>
                       </TableRow>
-                    ))}
+                    ) : (
+                      rotationRows.map((r, i) => (
+                        <TableRow key={`${r.scale_index}-${r.employee_id}-${i}`}>
+                          <TableCell>{r.scale_index}</TableCell>
+                          <TableCell>{employees.find((e) => e.employee_id === r.employee_id)?.name || r.employee_id}</TableCell>
+                          <TableCell>{r.sunday_date}</TableCell>
+                          <TableCell>{r.folga_date || '—'}</TableCell>
+                          <TableCell className="space-x-2">
+                            <Button size="sm" variant="outline" onClick={() => handleEditRotation(r, i)}>
+                              Editar
+                            </Button>
+                            <Button size="sm" variant="destructive" onClick={() => handleDeleteRotation(i)}>
+                              Remover
+                            </Button>
+                          </TableCell>
+                        </TableRow>
+                      ))
+                    )}
                   </TableBody>
                 </Table>
-              </div>
-              <Button onClick={handleSaveTemplate} disabled={loading} className="mt-4">
-                {loading ? 'Salvando…' : 'Salvar mosaico'}
-              </Button>
-            </CardContent>
-          </Card>
-        </TemplateSection>
+              </CardContent>
+              <CardFooter>
+                <Button onClick={handleSaveRotation} disabled={loading}>
+                  {loading ? 'Salvando…' : 'Salvar rodízio'}
+                </Button>
+              </CardFooter>
+            </Card>
+          </RotationSection>
         </TabsContent>
-        <TabsContent value="rodizio" className="mt-4">
-        <RotationSection>
-          <Card>
-            <CardHeader>
-              <CardTitle>Rodízio de domingos</CardTitle>
-              <CardDescription>Ordem de quem trabalha aos domingos e como compensa folga.</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <form
-                onSubmit={(e) => {
-                  e.preventDefault()
-                  handleAddRotation()
-                }}
-                className="flex flex-wrap gap-4 items-end p-4 border rounded-lg bg-muted/30 mb-4"
-              >
-                <div className="space-y-2">
-                  <Label htmlFor="rotation-index">Posição</Label>
-                  <Input
-                    id="rotation-index"
-                    type="number"
-                    min={1}
-                    value={newRotation.scale_index}
-                    onChange={(e) => setNewRotation({ ...newRotation, scale_index: parseInt(e.target.value, 10) || 1 })}
-                    className="w-[80px]"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="rotation-employee">Colaborador</Label>
-                  <Select value={newRotation.employee_id} onValueChange={(v) => setNewRotation({ ...newRotation, employee_id: v })} required>
-                    <SelectTrigger id="rotation-employee" className="w-[180px]">
-                      <SelectValue placeholder="Selecione" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {employees.map((e) => (
-                        <SelectItem key={e.employee_id} value={e.employee_id}>
-                          {e.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="rotation-sunday">Domingo</Label>
-                  <DateInput
-                    id="rotation-sunday"
-                    value={newRotation.sunday_date}
-                    onChange={(e) => setNewRotation({ ...newRotation, sunday_date: e.target.value })}
-                    required
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="rotation-folga">Folga</Label>
-                  <DateInput
-                    id="rotation-folga"
-                    value={newRotation.folga_date}
-                    onChange={(e) => setNewRotation({ ...newRotation, folga_date: e.target.value })}
-                  />
-                </div>
-                <Button type="submit">{editingRotationIndex != null ? 'Salvar edição' : 'Adicionar'}</Button>
-                {editingRotationIndex != null && (
-                  <Button
-                    type="button"
-                    variant="outline"
-                    onClick={() => {
-                      setEditingRotationIndex(null)
-                      setNewRotation({ scale_index: 1, employee_id: '', sunday_date: '', folga_date: '' })
-                    }}
-                  >
-                    Cancelar edição
-                  </Button>
-                )}
-              </form>
-              <Table>
-                <TableCaption>Entradas do rodízio de domingos e folgas associadas.</TableCaption>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Posição</TableHead>
-                    <TableHead>Colaborador</TableHead>
-                    <TableHead>Domingo</TableHead>
-                    <TableHead>Folga</TableHead>
-                    <TableHead>Ações</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {rotationRows.length === 0 ? (
+        <TabsContent value="excecoes">
+          <ExceptionSection>
+            <Card>
+              <CardHeader>
+                <CardTitle>Férias e ausências</CardTitle>
+                <CardDescription>Datas em que o colaborador não pode trabalhar — férias, atestados, trocas.</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <form id="exception-form" onSubmit={handleAddException} className="grid w-full gap-4 p-4 border rounded-lg bg-muted/30 sm:grid-cols-2 md:grid-cols-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="exception-employee">Colaborador</Label>
+                    <Select value={newExc.employee_id} onValueChange={(v) => setNewExc({ ...newExc, employee_id: v })} required>
+                      <SelectTrigger id="exception-employee" className="w-full">
+                        <SelectValue placeholder="Selecione" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {employees.map((e) => (
+                          <SelectItem key={e.employee_id} value={e.employee_id}>
+                            {e.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="exception-date">Data</Label>
+                    <DateInput
+                      id="exception-date"
+                      value={newExc.exception_date}
+                      onChange={(e) => setNewExc({ ...newExc, exception_date: e.target.value })}
+                      required
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="exception-type">Tipo</Label>
+                    <Select value={newExc.exception_type} onValueChange={(v) => setNewExc({ ...newExc, exception_type: v })}>
+                      <SelectTrigger id="exception-type" className="w-full">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="VACATION">Férias</SelectItem>
+                        <SelectItem value="MEDICAL_LEAVE">Atestado</SelectItem>
+                        <SelectItem value="SWAP">Troca</SelectItem>
+                        <SelectItem value="BLOCK">Bloqueio</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="exception-note">Observação</Label>
+                    <Input
+                      id="exception-note"
+                      placeholder="Opcional"
+                      value={newExc.note}
+                      onChange={(e) => setNewExc({ ...newExc, note: e.target.value })}
+                      className="w-full"
+                    />
+                  </div>
+                </form>
+                <Table>
+                  <TableCaption>Exceções operacionais cadastradas para o período.</TableCaption>
+                  <TableHeader>
                     <TableRow>
-                      <TableCell colSpan={5} className="text-muted-foreground">
-                        Nenhum rodízio cadastrado ainda.
-                      </TableCell>
+                      <TableHead>Colaborador</TableHead>
+                      <TableHead>Data</TableHead>
+                      <TableHead>Tipo</TableHead>
+                      <TableHead>Observação</TableHead>
+                      <TableHead>Ações</TableHead>
                     </TableRow>
-                  ) : (
-                    rotationRows.map((r, i) => (
-                      <TableRow key={`${r.scale_index}-${r.employee_id}-${i}`}>
-                        <TableCell>{r.scale_index}</TableCell>
-                        <TableCell>{employees.find((e) => e.employee_id === r.employee_id)?.name || r.employee_id}</TableCell>
-                        <TableCell>{r.sunday_date}</TableCell>
-                        <TableCell>{r.folga_date || '—'}</TableCell>
-                        <TableCell className="space-x-2">
-                          <Button size="sm" variant="outline" onClick={() => handleEditRotation(r, i)}>
-                            Editar
-                          </Button>
-                          <Button size="sm" variant="destructive" onClick={() => handleDeleteRotation(i)}>
-                            Remover
-                          </Button>
+                  </TableHeader>
+                  <TableBody>
+                    {exceptions.length === 0 ? (
+                      <TableRow>
+                        <TableCell colSpan={5} className="text-muted-foreground">
+                          Nenhuma exceção. Adicione acima.
                         </TableCell>
                       </TableRow>
-                    ))
-                  )}
-                </TableBody>
-              </Table>
-              <Button onClick={handleSaveRotation} disabled={loading} className="mt-4">
-                {loading ? 'Salvando…' : 'Salvar rodízio'}
-              </Button>
-            </CardContent>
-          </Card>
-        </RotationSection>
-        </TabsContent>
-        <TabsContent value="excecoes" className="mt-4">
-        <ExceptionSection>
-          <Card>
-            <CardHeader>
-              <CardTitle>Férias e ausências</CardTitle>
-              <CardDescription>Datas em que o colaborador não pode trabalhar — férias, atestados, trocas.</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <form onSubmit={handleAddException} className="flex flex-wrap gap-4 items-end p-4 border rounded-lg bg-muted/30">
-                <div className="space-y-2">
-                  <Label htmlFor="exception-employee">Colaborador</Label>
-                  <Select value={newExc.employee_id} onValueChange={(v) => setNewExc({ ...newExc, employee_id: v })} required>
-                    <SelectTrigger id="exception-employee" className="w-[180px]">
-                      <SelectValue placeholder="Selecione" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {employees.map((e) => (
-                        <SelectItem key={e.employee_id} value={e.employee_id}>
-                          {e.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="exception-date">Data</Label>
-                  <DateInput
-                    id="exception-date"
-                    value={newExc.exception_date}
-                    onChange={(e) => setNewExc({ ...newExc, exception_date: e.target.value })}
-                    required
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="exception-type">Tipo</Label>
-                  <Select value={newExc.exception_type} onValueChange={(v) => setNewExc({ ...newExc, exception_type: v })}>
-                    <SelectTrigger id="exception-type" className="w-[140px]">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="VACATION">Férias</SelectItem>
-                      <SelectItem value="MEDICAL_LEAVE">Atestado</SelectItem>
-                      <SelectItem value="SWAP">Troca</SelectItem>
-                      <SelectItem value="BLOCK">Bloqueio</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="exception-note">Observação</Label>
-                  <Input
-                    id="exception-note"
-                    placeholder="Opcional"
-                    value={newExc.note}
-                    onChange={(e) => setNewExc({ ...newExc, note: e.target.value })}
-                    className="w-[180px]"
-                  />
-                </div>
-                <Button type="submit" disabled={loading}>
+                    ) : (
+                      exceptions.map((ex, i) => (
+                        <TableRow key={`${ex.employee_id}-${ex.exception_date}-${i}`}>
+                          <TableCell>{employees.find((e) => e.employee_id === ex.employee_id)?.name || ex.employee_id}</TableCell>
+                          <TableCell>{ex.exception_date}</TableCell>
+                          <TableCell>{ex.exception_type === 'VACATION' ? 'Férias' : ex.exception_type === 'MEDICAL_LEAVE' ? 'Atestado' : ex.exception_type}</TableCell>
+                          <TableCell>{ex.note || '—'}</TableCell>
+                          <TableCell className="space-x-2">
+                            <Button size="sm" variant="outline" onClick={() => handleEditException(ex)}>
+                              Editar
+                            </Button>
+                            <Button size="sm" variant="destructive" onClick={() => handleDeleteException(ex)}>
+                              Remover
+                            </Button>
+                          </TableCell>
+                        </TableRow>
+                      ))
+                    )}
+                  </TableBody>
+                </Table>
+              </CardContent>
+              <CardFooter>
+                <Button type="submit" form="exception-form" disabled={loading}>
                   {loading ? 'Salvando…' : editingExceptionKey ? 'Salvar edição' : 'Adicionar'}
                 </Button>
                 {editingExceptionKey && (
@@ -1061,94 +1165,94 @@ export function ConfiguracaoPage() {
                     Cancelar edição
                   </Button>
                 )}
-              </form>
-              <Table>
-                <TableCaption>Exceções operacionais cadastradas para o período.</TableCaption>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Colaborador</TableHead>
-                    <TableHead>Data</TableHead>
-                    <TableHead>Tipo</TableHead>
-                    <TableHead>Observação</TableHead>
-                    <TableHead>Ações</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {exceptions.length === 0 ? (
+              </CardFooter>
+            </Card>
+          </ExceptionSection>
+        </TabsContent>
+        <TabsContent value="demand">
+          <DemandSection>
+            <Card>
+              <CardHeader>
+                <CardTitle>Demanda por horário</CardTitle>
+                <CardDescription>Quantidade de pessoas necessárias em cada período do dia.</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <form id="demand-form" onSubmit={handleAddDemand} className="grid w-full gap-4 p-4 border rounded-lg bg-muted/30 sm:grid-cols-2 md:grid-cols-[auto_auto_auto]">
+                  <div className="space-y-2">
+                    <Label htmlFor="demand-date">Data</Label>
+                    <DateInput
+                      id="demand-date"
+                      value={newDemand.work_date}
+                      onChange={(e) => setNewDemand({ ...newDemand, work_date: e.target.value })}
+                      required
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="demand-slot">Horário (slot)</Label>
+                    <Select value={newDemand.slot_start} onValueChange={(v) => setNewDemand({ ...newDemand, slot_start: v })}>
+                      <SelectTrigger id="demand-slot" className="w-[120px]">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {['08:00', '08:30', '09:00', '09:30', '10:00', '10:30', '11:00', '11:30', '12:00', '12:30', '13:00', '13:30', '14:00', '14:30', '15:00', '15:30', '16:00', '16:30', '17:00', '17:30', '18:00'].map((t) => (
+                          <SelectItem key={t} value={t}>
+                            {t}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="demand-min-required">Mín. pessoas</Label>
+                    <Input
+                      id="demand-min-required"
+                      type="number"
+                      min={1}
+                      value={newDemand.min_required}
+                      onChange={(e) => setNewDemand({ ...newDemand, min_required: e.target.value })}
+                      className="w-[100px]"
+                    />
+                  </div>
+                </form>
+                <Table>
+                  <TableCaption>Slots de demanda por data e horário.</TableCaption>
+                  <TableHeader>
                     <TableRow>
-                      <TableCell colSpan={5} className="text-muted-foreground">
-                        Nenhuma exceção. Adicione acima.
-                      </TableCell>
+                      <TableHead>Data</TableHead>
+                      <TableHead>Horário</TableHead>
+                      <TableHead>Mín. pessoas</TableHead>
+                      <TableHead>Ações</TableHead>
                     </TableRow>
-                  ) : (
-                    exceptions.map((ex, i) => (
-                      <TableRow key={`${ex.employee_id}-${ex.exception_date}-${i}`}>
-                        <TableCell>{employees.find((e) => e.employee_id === ex.employee_id)?.name || ex.employee_id}</TableCell>
-                        <TableCell>{ex.exception_date}</TableCell>
-                        <TableCell>{ex.exception_type === 'VACATION' ? 'Férias' : ex.exception_type === 'MEDICAL_LEAVE' ? 'Atestado' : ex.exception_type}</TableCell>
-                        <TableCell>{ex.note || '—'}</TableCell>
-                        <TableCell className="space-x-2">
-                          <Button size="sm" variant="outline" onClick={() => handleEditException(ex)}>
-                            Editar
-                          </Button>
-                          <Button size="sm" variant="destructive" onClick={() => handleDeleteException(ex)}>
-                            Remover
-                          </Button>
+                  </TableHeader>
+                  <TableBody>
+                    {demandSlots.length === 0 ? (
+                      <TableRow>
+                        <TableCell colSpan={4} className="text-muted-foreground">
+                          Nenhum slot de demanda. Adicione acima.
                         </TableCell>
                       </TableRow>
-                    ))
-                  )}
-                </TableBody>
-              </Table>
-            </CardContent>
-          </Card>
-        </ExceptionSection>
-        </TabsContent>
-        <TabsContent value="demand" className="mt-4">
-        <DemandSection>
-          <Card>
-            <CardHeader>
-              <CardTitle>Demanda por horário</CardTitle>
-              <CardDescription>Quantidade de pessoas necessárias em cada período do dia.</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <form onSubmit={handleAddDemand} className="flex flex-wrap gap-4 items-end p-4 border rounded-lg bg-muted/30">
-                <div className="space-y-2">
-                  <Label htmlFor="demand-date">Data</Label>
-                  <DateInput
-                    id="demand-date"
-                    value={newDemand.work_date}
-                    onChange={(e) => setNewDemand({ ...newDemand, work_date: e.target.value })}
-                    required
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="demand-slot">Horário (slot)</Label>
-                  <Select value={newDemand.slot_start} onValueChange={(v) => setNewDemand({ ...newDemand, slot_start: v })}>
-                    <SelectTrigger id="demand-slot" className="w-[120px]">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {['08:00', '08:30', '09:00', '09:30', '10:00', '10:30', '11:00', '11:30', '12:00', '12:30', '13:00', '13:30', '14:00', '14:30', '15:00', '15:30', '16:00', '16:30', '17:00', '17:30', '18:00'].map((t) => (
-                        <SelectItem key={t} value={t}>
-                          {t}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="demand-min-required">Mín. pessoas</Label>
-                  <Input
-                    id="demand-min-required"
-                    type="number"
-                    min={1}
-                    value={newDemand.min_required}
-                    onChange={(e) => setNewDemand({ ...newDemand, min_required: e.target.value })}
-                    className="w-[100px]"
-                  />
-                </div>
-                <Button type="submit" disabled={loading}>
+                    ) : (
+                      demandSlots.map((d, i) => (
+                        <TableRow key={`${d.work_date}-${d.slot_start}-${i}`}>
+                          <TableCell>{d.work_date}</TableCell>
+                          <TableCell>{d.slot_start}</TableCell>
+                          <TableCell>{d.min_required}</TableCell>
+                          <TableCell className="space-x-2">
+                            <Button size="sm" variant="outline" onClick={() => handleEditDemand(d)}>
+                              Editar
+                            </Button>
+                            <Button size="sm" variant="destructive" onClick={() => handleDeleteDemand(d)}>
+                              Remover
+                            </Button>
+                          </TableCell>
+                        </TableRow>
+                      ))
+                    )}
+                  </TableBody>
+                </Table>
+              </CardContent>
+              <CardFooter>
+                <Button type="submit" form="demand-form" disabled={loading}>
                   {loading ? 'Salvando…' : editingDemandKey ? 'Salvar edição' : 'Adicionar'}
                 </Button>
                 {editingDemandKey && (
@@ -1163,48 +1267,11 @@ export function ConfiguracaoPage() {
                     Cancelar edição
                   </Button>
                 )}
-              </form>
-              <Table>
-                <TableCaption>Slots de demanda por data e horário.</TableCaption>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Data</TableHead>
-                    <TableHead>Horário</TableHead>
-                    <TableHead>Mín. pessoas</TableHead>
-                    <TableHead>Ações</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {demandSlots.length === 0 ? (
-                    <TableRow>
-                      <TableCell colSpan={4} className="text-muted-foreground">
-                        Nenhum slot de demanda. Adicione acima.
-                      </TableCell>
-                    </TableRow>
-                  ) : (
-                    demandSlots.map((d, i) => (
-                      <TableRow key={`${d.work_date}-${d.slot_start}-${i}`}>
-                        <TableCell>{d.work_date}</TableCell>
-                        <TableCell>{d.slot_start}</TableCell>
-                        <TableCell>{d.min_required}</TableCell>
-                        <TableCell className="space-x-2">
-                          <Button size="sm" variant="outline" onClick={() => handleEditDemand(d)}>
-                            Editar
-                          </Button>
-                          <Button size="sm" variant="destructive" onClick={() => handleDeleteDemand(d)}>
-                            Remover
-                          </Button>
-                        </TableCell>
-                      </TableRow>
-                    ))
-                  )}
-                </TableBody>
-              </Table>
-            </CardContent>
-          </Card>
-        </DemandSection>
+              </CardFooter>
+            </Card>
+          </DemandSection>
         </TabsContent>
-        <TabsContent value="governanca" className="mt-4">
+        <TabsContent value="governanca">
           <Card>
             <CardHeader>
               <CardTitle>Governança operacional (jurídico e marcadores)</CardTitle>
@@ -1270,7 +1337,7 @@ export function ConfiguracaoPage() {
                   </p>
                   {runtimeMode.mode === 'ESTRITO' && (
                     <p className="text-xs text-amber-700 dark:text-amber-300">
-                      Em ESTRITO, avisos LEGAL_SOFT exigem justificativa para continuidade no fluxo de escala.
+                      Em modo ESTRITO, avisos de Risco Legal exigem justificativa para continuidade no fluxo de escala.
                     </p>
                   )}
                 </div>
@@ -1299,12 +1366,12 @@ export function ConfiguracaoPage() {
                             setGovernance((prev) =>
                               prev
                                 ? {
-                                    ...prev,
-                                    marker_semantics: {
-                                      ...prev.marker_semantics,
-                                      [marker]: e.target.value.toUpperCase(),
-                                    },
-                                  }
+                                  ...prev,
+                                  marker_semantics: {
+                                    ...prev.marker_semantics,
+                                    [marker]: e.target.value.toUpperCase(),
+                                  },
+                                }
                                 : prev
                             )
                           }

@@ -19,7 +19,7 @@ export function Layout({ currentPage, onNavigate, children }: Props) {
       <main className="flex min-h-svh flex-1 flex-col overflow-auto bg-background">
         <header className="sticky top-0 z-10 flex h-14 shrink-0 items-center gap-2 border-b bg-background px-6">
           <SidebarTrigger
-            className="-ml-2 size-9 shrink-0"
+            className="no-drag -ml-2 size-9 shrink-0"
             aria-label="Alternar menu (⌘B / Ctrl+B)"
           />
           <div className="flex-1">

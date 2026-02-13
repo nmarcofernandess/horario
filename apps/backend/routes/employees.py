@@ -2,7 +2,11 @@
 from fastapi import APIRouter, Depends, HTTPException
 from apps.backend.src.domain.models import Employee
 from apps.backend.src.infrastructure.repositories_db import SqlAlchemyRepository
-from apps.backend.schemas import EmployeeCreate, EmployeeResponse, EmployeeRankUpdate
+from apps.backend.schemas import (
+    EmployeeCreate,
+    EmployeeResponse,
+    EmployeeRankUpdate,
+)
 from apps.backend.deps import get_repo
 
 router = APIRouter(prefix="/employees", tags=["employees"])

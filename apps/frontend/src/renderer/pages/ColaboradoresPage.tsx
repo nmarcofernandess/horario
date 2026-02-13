@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import { useForm } from 'react-hook-form'
 import { z } from 'zod'
 import { zodResolver } from '@hookform/resolvers/zod'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import {
@@ -117,7 +117,7 @@ export function ColaboradoresPage() {
             </CardHeader>
             <CardContent>
               <Form {...employeeForm}>
-                <form onSubmit={employeeForm.handleSubmit(handleAddEmployee)} className="flex gap-4 flex-wrap items-start">
+                <form id="employee-form" onSubmit={employeeForm.handleSubmit(handleAddEmployee)} className="grid w-full gap-4 sm:grid-cols-2 md:grid-cols-3">
                   <FormField
                     control={employeeForm.control}
                     name="employee_id"
@@ -161,7 +161,7 @@ export function ColaboradoresPage() {
                           <FormLabel>Contrato</FormLabel>
                           <Select onValueChange={field.onChange} value={field.value}>
                             <FormControl>
-                              <SelectTrigger className="w-[160px]">
+                              <SelectTrigger className="w-full">
                                 <SelectValue />
                               </SelectTrigger>
                             </FormControl>
@@ -176,12 +176,12 @@ export function ColaboradoresPage() {
                       </FormItem>
                     )}
                   />
-                  <div className="self-end">
-                    <FormActions isSubmitting={employeeForm.formState.isSubmitting} submitLabel="Adicionar" />
-                  </div>
                 </form>
               </Form>
             </CardContent>
+            <CardFooter>
+              <FormActions formId="employee-form" isSubmitting={employeeForm.formState.isSubmitting} submitLabel="Adicionar" />
+            </CardFooter>
           </Card>
           <Card className="mt-4">
             <CardHeader>
@@ -190,7 +190,6 @@ export function ColaboradoresPage() {
             </CardHeader>
             <CardContent>
               <Table>
-                <TableCaption>Colaboradores cadastrados para composição da escala.</TableCaption>
                 <TableHeader>
                   <TableRow>
                     <TableHead>Código</TableHead>
@@ -209,11 +208,6 @@ export function ColaboradoresPage() {
                     </TableRow>
                   ))}
                 </TableBody>
-                <TableFooter>
-                  <TableRow>
-                    <TableCell colSpan={4}>{employees.length} colaboradores cadastrados.</TableCell>
-                  </TableRow>
-                </TableFooter>
               </Table>
             </CardContent>
           </Card>
@@ -226,7 +220,7 @@ export function ColaboradoresPage() {
             </CardHeader>
             <CardContent>
               <Form {...sectorForm}>
-                <form onSubmit={sectorForm.handleSubmit(handleAddSector)} className="flex gap-4 flex-wrap items-start">
+                <form id="sector-form" onSubmit={sectorForm.handleSubmit(handleAddSector)} className="grid w-full gap-4 sm:grid-cols-2">
                   <FormField
                     control={sectorForm.control}
                     name="sector_id"
@@ -261,12 +255,12 @@ export function ColaboradoresPage() {
                       </FormItem>
                     )}
                   />
-                  <div className="self-end">
-                    <FormActions isSubmitting={sectorForm.formState.isSubmitting} submitLabel="Adicionar" />
-                  </div>
                 </form>
               </Form>
             </CardContent>
+            <CardFooter>
+              <FormActions formId="sector-form" isSubmitting={sectorForm.formState.isSubmitting} submitLabel="Adicionar" />
+            </CardFooter>
           </Card>
           <Card className="mt-4">
             <CardHeader>

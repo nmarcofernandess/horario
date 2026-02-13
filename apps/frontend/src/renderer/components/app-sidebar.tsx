@@ -1,13 +1,13 @@
 "use client"
 
 import * as React from "react"
+import { PERFIL_UPDATED_EVENT } from "@/lib/perfil"
 import {
   Calendar,
   Users,
   FileText,
   Settings,
   Store,
-  User,
 } from "lucide-react"
 import type { Page } from "@/types"
 import { NavMain } from "@/components/nav-main"
@@ -26,16 +26,23 @@ function loadUserFromPerfil() {
     const s = localStorage.getItem("escalaflow-perfil")
     if (s) {
       const p = JSON.parse(s)
-      return { name: p.nome || "Usuário", avatar: p.fotoBase64 || "" }
+      return {
+        name: p.nome || "Usuário",
+        avatar: p.fotoBase64 || "",
+        organizacao: p.organizacao || "",
+      }
     }
-  } catch {}
-  return { name: "Usuário", avatar: "" }
+  } catch { /* ignore parse errors */ }
+  return { name: "Usuário", avatar: "", organizacao: "" }
 }
 
-const pageToNav = (currentPage: Page) => ({
+const pageToNav = (currentPage: Page) => {
+  const perfil = loadUserFromPerfil()
+  return {
   user: {
-    ...loadUserFromPerfil(),
-    email: "Perfil local",
+    name: perfil.name,
+    avatar: perfil.avatar,
+    email: perfil.organizacao || "Perfil local",
   },
   navMain: [
     {
@@ -66,15 +73,9 @@ const pageToNav = (currentPage: Page) => ({
       isActive: currentPage === "configuracao",
       items: [],
     },
-    {
-      title: "Perfil",
-      url: "perfil",
-      icon: User,
-      isActive: currentPage === "perfil",
-      items: [],
-    },
   ],
-})
+}
+}
 
 type Props = {
   currentPage: Page
@@ -82,16 +83,22 @@ type Props = {
 }
 
 export function AppSidebar({ currentPage, onNavigate }: Props) {
-  const data = React.useMemo(() => pageToNav(currentPage), [currentPage])
+  const [perfilVersion, setPerfilVersion] = React.useState(0)
+  React.useEffect(() => {
+    const handler = () => setPerfilVersion((v) => v + 1)
+    window.addEventListener(PERFIL_UPDATED_EVENT, handler)
+    return () => window.removeEventListener(PERFIL_UPDATED_EVENT, handler)
+  }, [])
+  const data = React.useMemo(() => pageToNav(currentPage), [currentPage, perfilVersion])
 
   return (
     <Sidebar collapsible="icon">
       <SidebarHeader>
-        <div id={TOUR_STEP_IDS.TEAM_SWITCHER} className="flex items-center gap-2 px-2 py-1">
-          <div className="bg-sidebar-primary text-sidebar-primary-foreground flex size-8 items-center justify-center rounded-lg">
+        <div id={TOUR_STEP_IDS.TEAM_SWITCHER} className="flex items-center gap-2 px-2 py-1 group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:px-0">
+          <div className="bg-sidebar-primary text-sidebar-primary-foreground flex size-8 shrink-0 items-center justify-center rounded-lg">
             <Store className="size-4" />
           </div>
-          <div className="grid text-left text-sm leading-tight">
+          <div className="grid min-w-0 flex-1 text-left text-sm leading-tight group-data-[collapsible=icon]:hidden">
             <span className="truncate font-medium">EscalaFlow</span>
             <span className="truncate text-xs text-muted-foreground">Operação local</span>
           </div>

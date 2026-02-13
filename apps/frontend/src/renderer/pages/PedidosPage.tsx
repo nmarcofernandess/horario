@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import { useForm } from 'react-hook-form'
 import { z } from 'zod'
 import { zodResolver } from '@hookform/resolvers/zod'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Card, CardAction, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { DateInput } from '@/components/ui/date-input'
@@ -114,18 +114,16 @@ export function PedidosPage() {
             ) : (
               pendentes.map((p) => (
                 <Card key={p.request_id}>
-                  <CardContent className="pt-6">
-                    <div className="flex justify-between items-start">
-                      <div>
-                        <p><strong>{p.employee_id}</strong> — {formatRequestType(p.request_type)}</p>
-                        <p className="text-sm text-muted-foreground">{formatDateBR(p.request_date)}</p>
-                      </div>
+                  <CardHeader>
+                    <CardTitle>{p.employee_id} — {formatRequestType(p.request_type)}</CardTitle>
+                    <CardDescription>{formatDateBR(p.request_date)}</CardDescription>
+                    <CardAction>
                       <div className="flex gap-2">
                         <Button size="sm" onClick={() => handleApprove(p.request_id)}>Aprovar</Button>
                         <Button size="sm" variant="destructive" onClick={() => handleReject(p.request_id)}>Rejeitar</Button>
                       </div>
-                    </div>
-                  </CardContent>
+                    </CardAction>
+                  </CardHeader>
                 </Card>
               ))
             )}
@@ -139,7 +137,7 @@ export function PedidosPage() {
             </CardHeader>
             <CardContent>
               <Form {...form}>
-                <form onSubmit={form.handleSubmit(handleCreate)} className="space-y-4">
+                <form id="preference-form" onSubmit={form.handleSubmit(handleCreate)} className="space-y-4">
                   <FormField
                     control={form.control}
                     name="employee_id"
@@ -198,10 +196,12 @@ export function PedidosPage() {
                       </FormItem>
                     )}
                   />
-                  <FormActions isSubmitting={form.formState.isSubmitting} submitLabel="Criar pedido" />
                 </form>
               </Form>
             </CardContent>
+            <CardFooter>
+              <FormActions formId="preference-form" isSubmitting={form.formState.isSubmitting} submitLabel="Criar pedido" />
+            </CardFooter>
           </Card>
         </TabsContent>
       </Tabs>

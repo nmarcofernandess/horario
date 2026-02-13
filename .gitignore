@@ -53,6 +53,8 @@ node_modules/
 # Build output
 dist/
 out/
+release/
+download/
 *.tsbuildinfo
 
 # Cache

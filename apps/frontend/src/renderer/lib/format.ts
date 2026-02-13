@@ -24,6 +24,7 @@ const RULE_LABELS: Record<string, string> = {
   R1_MAX_CONSECUTIVE: 'Dias consecutivos (máx. 6)',
   R2_MIN_INTERSHIFT_REST: 'Intervalo entre jornadas (mín. 11h)',
   R2_INTERSHIFT_REST: 'Intervalo entre jornadas',
+  R3_SUNDAY_ROTATION: 'Rodízio de domingos',
   R3_WEEKLY_HOURS: 'Meta semanal de horas',
   R4_WEEKLY_TARGET: 'Meta semanal de horas',
   R4_DEMAND_COVERAGE: 'Cobertura insuficiente',

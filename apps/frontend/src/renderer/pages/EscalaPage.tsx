@@ -16,6 +16,17 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog'
 import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from '@/components/ui/collapsible'
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/components/ui/tooltip'
+import {
   Table,
   TableBody,
   TableCaption,
@@ -40,6 +51,7 @@ import {
   formatSeverity,
   pluralize,
 } from '@/lib/format'
+import { Circle, ChevronDownIcon, CheckCircle2Icon, AlertTriangleIcon } from 'lucide-react'
 
 const COPY = {
   preflightTitle: 'Validação operacional',
@@ -51,7 +63,7 @@ const COPY = {
   preflightFailed: 'Não foi possível validar as condições de execução.',
   preflightBlockedToast: 'A operação foi bloqueada por inconsistência de configuração.',
   preflightRetryToast: 'Falha ao revalidar as condições de execução.',
-  simulationBanner: 'Visualizando uma simulação. Nenhum dado oficial foi sobrescrito.',
+  simulationBanner: 'Simulação do período.',
   ackTitle: 'Continuar com risco legal',
   ackDescription: 'Modo estrito exige justificativa para seguir quando houver pendência legal/compliance.',
   ackReasonHint: 'Mínimo recomendado: 10 caracteres',
@@ -169,6 +181,7 @@ export function EscalaPage() {
     loadWeeklyAnalysis('OFFICIAL').catch(() => {
       // Mantém tela funcional se endpoint ainda estiver indisponível.
     })
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- run once on mount
   }, [])
 
   const PAGE_SIZE = 20
@@ -185,15 +198,15 @@ export function EscalaPage() {
       return { label: 'VALIDANDO', variant: 'outline' as const, description: COPY.preflightLoading }
     }
     if (!preflight) {
-      return { label: 'SEM CHECK', variant: 'outline' as const, description: COPY.preflightNotRun }
+      return { label: 'AGUARDANDO', variant: 'outline' as const, description: COPY.preflightNotRun }
     }
     if (preflight.blockers.length > 0 || !preflight.can_proceed) {
-      return { label: 'BLOCKED', variant: 'destructive' as const, description: COPY.preflightBlocked }
+      return { label: 'BLOQUEADO', variant: 'destructive' as const, description: COPY.preflightBlocked }
     }
     if (preflight.ack_required) {
-      return { label: 'ACK REQUIRED', variant: 'destructive' as const, description: COPY.preflightAckRequired }
+      return { label: 'RISCO LEGAL', variant: 'destructive' as const, description: COPY.preflightAckRequired }
     }
-    return { label: 'READY', variant: 'secondary' as const, description: COPY.preflightReady }
+    return { label: 'LIBERADO', variant: 'secondary' as const, description: COPY.preflightReady }
   }, [preflight, preflightLoading])
 
   useEffect(() => {
@@ -218,7 +231,7 @@ export function EscalaPage() {
       matrix: map,
       empNames: names,
     }
-  }, [activeAssignments])
+  }, [assignments])
 
   const runOperation = async (
     operation: 'GENERATE' | 'SIMULATE',
@@ -267,10 +280,10 @@ export function EscalaPage() {
         setPreflight((prev) =>
           prev
             ? {
-                ...prev,
-                critical_warnings: detail?.critical_warnings || prev.critical_warnings,
-                ack_required: true,
-              }
+              ...prev,
+              critical_warnings: detail?.critical_warnings || prev.critical_warnings,
+              ack_required: true,
+            }
             : prev
         )
         setPendingOperation(operation)
@@ -434,75 +447,77 @@ export function EscalaPage() {
           <CardTitle>Período</CardTitle>
           <CardDescription>Valida o cenário antes de gerar ou simular a escala.</CardDescription>
         </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="flex flex-wrap items-center gap-2 rounded-md border p-3">
-            <Badge variant={preflightSignal.variant}>{preflightSignal.label}</Badge>
-            <p className="text-sm text-muted-foreground">{preflightSignal.description}</p>
+        <CardContent className="space-y-6">
+          {/* 1. Período + Ações — fluxo principal */}
+          <div className="space-y-6">
+            <div className="grid gap-4 sm:grid-cols-2">
+              <div className="space-y-2">
+                <Label htmlFor="period-start" className="text-muted-foreground">De</Label>
+                <DateInput id="period-start" value={periodStart} onChange={(e) => setPeriodStart(e.target.value)} />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="period-end" className="text-muted-foreground">Até</Label>
+                <DateInput id="period-end" value={periodEnd} onChange={(e) => setPeriodEnd(e.target.value)} />
+              </div>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              <Button onClick={handleGenerate} disabled={loading}>
+                {loading ? 'Gerando...' : 'Gerar escala'}
+              </Button>
+              <Button variant="outline" onClick={handleSimulate} disabled={loading}>
+                {loading ? 'Simulando...' : 'Simular período'}
+              </Button>
+              {isSimulationView && (
+                <Button
+                  variant="secondary"
+                  onClick={() => {
+                    setIsSimulationView(false)
+                    setTablePage(0)
+                  }}
+                >
+                  Ver escala oficial
+                </Button>
+              )}
+            </div>
           </div>
-          {preflight && (
-            <div className="flex flex-wrap items-center gap-2 rounded-md border bg-muted/30 p-3">
-              <Badge variant={preflight.mode === 'ESTRITO' ? 'destructive' : 'secondary'}>
-                Modo: {preflight.mode}
-              </Badge>
-              <Badge variant={preflight.can_proceed ? 'secondary' : 'destructive'}>
-                {preflight.can_proceed ? 'Execução permitida' : 'Execução bloqueada'}
-              </Badge>
-              <Badge variant={preflight.ack_required ? 'destructive' : 'secondary'}>
-                {preflight.ack_required ? 'Ack obrigatório' : 'Sem ack obrigatório'}
-              </Badge>
+
+          {/* 2. Status — só quando há problema (BLOQUEADO, RISCO LEGAL) */}
+          {preflightSignal.label !== 'LIBERADO' && preflightSignal.label !== 'AGUARDANDO' && (
+            <div className="flex flex-wrap items-center gap-2">
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <button
+                      type="button"
+                      className="inline-flex items-center gap-2 rounded-md border border-destructive/40 bg-destructive/10 px-3 py-2 text-sm text-destructive hover:bg-destructive/20"
+                      onClick={() => loadPreflight().catch(() => toast.error(COPY.preflightRetryToast))}
+                      disabled={loading || preflightLoading}
+                    >
+                      <Circle className="size-3 fill-current" />
+                      {preflightSignal.label}
+                    </button>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p>{preflightSignal.description}</p>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
               <Button
-                variant="outline"
+                variant="ghost"
                 size="sm"
                 onClick={() => loadPreflight().catch(() => toast.error(COPY.preflightRetryToast))}
                 disabled={loading || preflightLoading}
               >
-                {preflightLoading ? 'Revalidando...' : 'Revalidar status'}
+                {preflightLoading ? 'Revalidando...' : 'Revalidar'}
               </Button>
             </div>
           )}
-          <div className="flex gap-4 flex-wrap items-end">
-            <div>
-              <Label htmlFor="period-start" className="text-muted-foreground mb-2 block">De</Label>
-              <DateInput id="period-start" value={periodStart} onChange={(e) => setPeriodStart(e.target.value)} />
-            </div>
-            <div>
-              <Label htmlFor="period-end" className="text-muted-foreground mb-2 block">Até</Label>
-              <DateInput id="period-end" value={periodEnd} onChange={(e) => setPeriodEnd(e.target.value)} />
-            </div>
-            <Button onClick={handleGenerate} disabled={loading}>
-              {loading ? 'Gerando...' : 'Gerar escala'}
-            </Button>
-            <Button variant="outline" onClick={handleSimulate} disabled={loading}>
-              {loading ? 'Simulando...' : 'Simular período'}
-            </Button>
-            {isSimulationView && (
-              <Button
-                variant="secondary"
-                onClick={() => {
-                  setIsSimulationView(false)
-                  setTablePage(0)
-                }}
-              >
-                Ver escala oficial
-              </Button>
-            )}
-          </div>
+
+          {/* 3. Feedback */}
           {error && <ErrorState message={error} />}
           {isSimulationView && (
             <p className="text-sm text-amber-700 dark:text-amber-300">
               {COPY.simulationBanner}
-            </p>
-          )}
-          {lastResult && (
-            <p className="text-sm text-muted-foreground">
-              Última geração: {pluralize(lastResult.assignments_count, 'alocação')}
-              {lastResult.violations_count > 0 && `, ${pluralize(lastResult.violations_count, 'alerta')}`}.
-            </p>
-          )}
-          {lastSimulation && (
-            <p className="text-sm text-muted-foreground">
-              Última simulação: {pluralize(lastSimulation.assignments_count, 'alocação')}
-              {lastSimulation.violations_count > 0 && `, ${pluralize(lastSimulation.violations_count, 'alerta')}`}.
             </p>
           )}
         </CardContent>
@@ -513,96 +528,127 @@ export function EscalaPage() {
         <Button variant="outline" size="sm" onClick={handleExportMd}>Exportar texto</Button>
       </div>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Análise semanal (robustez operacional)</CardTitle>
-          <CardDescription>
-            Comparativo de corte semanal MON_SUN vs SUN_SAT e pendências externas do fechamento legal.
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="flex flex-wrap gap-2">
-            <Button
-              size="sm"
-              variant={weeklyWindow === 'MON_SUN' ? 'default' : 'outline'}
-              onClick={() => setWeeklyWindow('MON_SUN')}
-            >
-              MON_SUN
-            </Button>
-            <Button
-              size="sm"
-              variant={weeklyWindow === 'SUN_SAT' ? 'default' : 'outline'}
-              onClick={() => setWeeklyWindow('SUN_SAT')}
-            >
-              SUN_SAT
-            </Button>
-            {weeklyAnalysis && (
-              <Badge variant="secondary">
-                Policy oficial: {weeklyAnalysis.policy_week_definition} | Tolerância: {weeklyAnalysis.tolerance_minutes} min
-              </Badge>
-            )}
-          </div>
-
-          {weeklyAnalysis && weeklyAnalysis.external_dependencies_open.length > 0 && (
-            <div className="rounded border border-amber-400/40 bg-amber-50 dark:bg-amber-900/20 p-3">
-              <p className="text-sm font-medium text-amber-800 dark:text-amber-200 mb-2">
-                Pendências externas (E4) ainda abertas
-              </p>
-              <ul className="text-sm text-amber-900 dark:text-amber-100 list-disc pl-5 space-y-1">
-                {weeklyAnalysis.external_dependencies_open.map((item, idx) => (
-                  <li key={idx}>{item}</li>
-                ))}
-              </ul>
-            </div>
-          )}
-
-          {weeklyAnalysis && (
-            <Table>
-              <TableCaption>Leitura semanal por janela de corte para diagnóstico de aderência de contrato.</TableCaption>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Semana</TableHead>
-                  <TableHead>Colaborador</TableHead>
-                  <TableHead>Contrato</TableHead>
-                  <TableHead>Real</TableHead>
-                  <TableHead>Meta</TableHead>
-                  <TableHead>Delta</TableHead>
-                  <TableHead>Status</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {(weeklyWindow === 'MON_SUN'
-                  ? weeklyAnalysis.summaries_mon_sun
-                  : weeklyAnalysis.summaries_sun_sat
-                ).map((r, i) => (
-                  <TableRow key={`${r.week_start}-${r.employee_id}-${i}`}>
-                    <TableCell>{formatDateBR(r.week_start)} - {formatDateBR(r.week_end)}</TableCell>
-                    <TableCell>{r.employee_name || r.employee_id}</TableCell>
-                    <TableCell>{r.contract_code}</TableCell>
-                    <TableCell>{formatMinutes(r.actual_minutes)}</TableCell>
-                    <TableCell>{formatMinutes(r.target_minutes)}</TableCell>
-                    <TableCell>{formatMinutes(r.delta_minutes)}</TableCell>
-                    <TableCell>
-                      <Badge variant={r.status === 'OK' ? 'secondary' : 'destructive'}>
-                        {r.status === 'OK' ? 'Dentro' : 'Fora'}
+      <div className="rounded-xl border bg-card shadow-sm overflow-hidden">
+        <Collapsible defaultOpen className="group/collapsible">
+          <CollapsibleTrigger asChild>
+            <button className="flex w-full items-start justify-between gap-4 px-6 py-6 text-left transition-colors hover:bg-muted/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset">
+              <div className="flex flex-col gap-1">
+                <div className="flex items-center gap-2">
+                  <CardTitle>Aderência de contrato</CardTitle>
+                  {(() => {
+                    const n = (isSimulationView ? lastSimulation?.violations_count : lastResult?.violations_count) ?? 0
+                    return n > 0 ? (
+                      <Badge variant="destructive" className="shrink-0">
+                        {n}
                       </Badge>
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-              <TableFooter>
-                <TableRow>
-                  <TableCell colSpan={7}>
-                    {weeklyWindow === 'MON_SUN'
-                      ? `${weeklyAnalysis.summaries_mon_sun.length} linhas de análise MON_SUN`
-                      : `${weeklyAnalysis.summaries_sun_sat.length} linhas de análise SUN_SAT`}
-                  </TableCell>
-                </TableRow>
-              </TableFooter>
-            </Table>
-          )}
-        </CardContent>
-      </Card>
+                    ) : null
+                  })()}
+                </div>
+                <CardDescription>
+                  Análise semanal da carga horária por janela de corte e status de governança.
+                </CardDescription>
+              </div>
+              <ChevronDownIcon className="mt-1 size-4 shrink-0 text-muted-foreground transition-transform duration-200 group-data-[state=open]/collapsible:rotate-180" />
+            </button>
+          </CollapsibleTrigger>
+          <CollapsibleContent>
+            <div className="border-t" />
+            <div className="px-6 pb-6 pt-6 flex flex-col gap-6">
+              <div className="flex flex-wrap gap-2">
+                <Button
+                  size="sm"
+                  variant={weeklyWindow === 'MON_SUN' ? 'default' : 'outline'}
+                  onClick={() => setWeeklyWindow('MON_SUN')}
+                >
+                  Segunda a Domingo
+                </Button>
+                <Button
+                  size="sm"
+                  variant={weeklyWindow === 'SUN_SAT' ? 'default' : 'outline'}
+                  onClick={() => setWeeklyWindow('SUN_SAT')}
+                >
+                  Domingo a Sábado
+                </Button>
+              </div>
+
+              {weeklyAnalysis && weeklyAnalysis.external_dependencies_open.length > 0 && (
+                <div className="rounded border border-amber-400/40 bg-amber-50 dark:bg-amber-900/20 p-3">
+                  <p className="text-sm font-medium text-amber-800 dark:text-amber-200 mb-2">
+                    Governança e Compliance Legal
+                  </p>
+                  <ul className="text-sm text-amber-900 dark:text-amber-100 list-disc pl-5 space-y-1">
+                    {weeklyAnalysis.external_dependencies_open.map((item, idx) => (
+                      <li key={idx}>{item}</li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+
+              {weeklyAnalysis && (
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Semana</TableHead>
+                      <TableHead>Colaborador</TableHead>
+                      <TableHead>Contrato</TableHead>
+                      <TableHead className="text-right">Real</TableHead>
+                      <TableHead className="text-right">Meta</TableHead>
+                      <TableHead className="text-right">Delta</TableHead>
+                      <TableHead className="text-center">Status</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {(weeklyWindow === 'MON_SUN'
+                      ? weeklyAnalysis.summaries_mon_sun
+                      : weeklyAnalysis.summaries_sun_sat
+                    ).map((r, i) => (
+                      <TableRow key={`${r.week_start}-${r.employee_id}-${i}`}>
+                        <TableCell>
+                          <span className="text-xs text-muted-foreground">
+                            {formatDateBR(r.week_start)} – {formatDateBR(r.week_end)}
+                          </span>
+                        </TableCell>
+                        <TableCell>{r.employee_name || r.employee_id}</TableCell>
+                        <TableCell>{r.contract_code}</TableCell>
+                        <TableCell className="text-right font-mono">{formatMinutes(r.actual_minutes)}</TableCell>
+                        <TableCell className="text-right font-mono">{formatMinutes(r.target_minutes)}</TableCell>
+                        <TableCell className="text-right font-mono">
+                          <span
+                            className={
+                              r.delta_minutes === 0
+                                ? 'text-muted-foreground'
+                                : r.delta_minutes > 0
+                                  ? 'text-amber-600 dark:text-amber-400'
+                                  : 'text-destructive'
+                            }
+                          >
+                            {r.delta_minutes > 0 ? '+' : ''}{formatMinutes(r.delta_minutes)}
+                          </span>
+                        </TableCell>
+                        <TableCell className="text-center">
+                          <Badge variant={r.status === 'OK' ? 'secondary' : 'destructive'} className="gap-1">
+                            {r.status === 'OK' ? (
+                              <>
+                                <CheckCircle2Icon className="size-3" />
+                                Dentro
+                              </>
+                            ) : (
+                              <>
+                                <AlertTriangleIcon className="size-3" />
+                                Fora
+                              </>
+                            )}
+                          </Badge>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              )}
+            </div>
+          </CollapsibleContent>
+        </Collapsible>
+      </div>
 
       <Card>
         <CardHeader>
@@ -729,43 +775,6 @@ export function EscalaPage() {
         </CardContent>
       </Card>
 
-      {activeViolations.length > 0 && (
-        <Card>
-          <CardHeader>
-            <CardTitle>Alertas</CardTitle>
-            <CardDescription>
-              {pluralize(activeViolations.length, 'alerta')} para revisar
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <Table>
-              <TableCaption>Alertas de compliance para revisão do gestor.</TableCaption>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Colaborador</TableHead>
-                  <TableHead>Regra</TableHead>
-                  <TableHead>Gravidade</TableHead>
-                  <TableHead>Detalhe</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {activeViolations.map((v, i) => (
-                  <TableRow key={i}>
-                    <TableCell>{v.employee_name || v.employee_id}</TableCell>
-                    <TableCell>{v.rule_label || formatRule(v.rule_code)}</TableCell>
-                    <TableCell>
-                      <Badge variant={v.severity === 'CRITICAL' ? 'destructive' : 'secondary'}>
-                        {formatSeverity(v.severity)}
-                      </Badge>
-                    </TableCell>
-                    <TableCell>{v.detail}</TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </CardContent>
-        </Card>
-      )}
     </div>
   )
 }

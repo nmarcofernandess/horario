@@ -60,18 +60,26 @@ class SqlAlchemyRepository:
         return {e.employee_id: orm_contracts.get(e.contract_code, 2640) for e in orm_emps}
 
     def load_contract_profiles(self, sector_id: str = "CAIXA") -> Dict[str, Dict[str, int | str]]:
-        """Retorna mapeamento employee_id -> {contract_code, weekly_minutes}."""
+        """Retorna mapeamento employee_id -> {contract_code, weekly_minutes, max_consecutive_sundays}."""
         orm_emps = self.session.query(EmployeeORM).filter(
             EmployeeORM.active == True,
             EmployeeORM.sector_id == sector_id
         ).all()
         orm_contracts = {
-            c.contract_code: {"contract_code": c.contract_code, "weekly_minutes": c.weekly_minutes}
+            c.contract_code: {
+                "contract_code": c.contract_code, 
+                "weekly_minutes": c.weekly_minutes,
+                "max_consecutive_sundays": c.max_consecutive_sundays or 2
+            }
             for c in self.session.query(ContractORM).all()
         }
         result: Dict[str, Dict[str, int | str]] = {}
         for e in orm_emps:
-            profile = orm_contracts.get(e.contract_code, {"contract_code": e.contract_code, "weekly_minutes": 2640})
+            profile = orm_contracts.get(e.contract_code, {
+                "contract_code": e.contract_code, 
+                "weekly_minutes": 2640,
+                "max_consecutive_sundays": 2
+            })
             result[e.employee_id] = profile
         return result
 
@@ -138,10 +146,13 @@ class SqlAlchemyRepository:
             self.session.add(SectorORM(sector_id=sector_id, name=name))
             self.session.commit()
 
-    def add_contract(self, code: str, sector_id: str, minutes: int):
+    def add_contract(self, code: str, sector_id: str, minutes: int, max_consecutive_sundays: int = 2):
         if self.session.get(ContractORM, code) is None:
             self.session.add(ContractORM(
-                contract_code=code, sector_id=sector_id, weekly_minutes=minutes
+                contract_code=code, 
+                sector_id=sector_id, 
+                weekly_minutes=minutes,
+                max_consecutive_sundays=max_consecutive_sundays
             ))
             self.session.commit()
 

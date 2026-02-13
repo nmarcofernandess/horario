@@ -71,6 +71,7 @@ def seed_everything(seed_path: Path = SEED_JSON_PATH) -> None:
                 str(contract["contract_code"]),
                 sector_id,
                 int(contract["weekly_minutes"]),
+                max_consecutive_sundays=int(contract.get("max_consecutive_sundays", 2)),
             )
 
         print("- Colaboradores...")
