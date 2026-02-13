@@ -76,6 +76,7 @@ download/
 # Dados locais
 # ===========================
 data/compliance_engine.db
+data/escalaflow.db
 data/processed/
 
 # ===========================

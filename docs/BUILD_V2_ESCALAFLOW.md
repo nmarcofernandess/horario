@@ -1562,61 +1562,49 @@ Ao criar/editar demanda:
 ### 9.1 Stack
 
 ```
-Python 3.11+
-FastAPI (framework HTTP)
-SQLite (banco local, arquivo unico)
-Pydantic (validacao de request/response)
-SQLAlchemy ou sqlite3 nativo (acesso ao banco)
+Node.js + TypeScript
+Hono (framework HTTP — leve, TS-first)
+better-sqlite3 (SQLite sincrono, rapido)
+Zod (validacao de request — onde necessario)
+@escalaflow/shared (tipos compartilhados com frontend)
 ```
 
 ### 9.2 Estrutura de pastas
 
 ```
-apps/backend/
+apps/api/
 ├── src/
-│   ├── api/
-│   │   ├── rotas/
-│   │   │   ├── empresa.py              # GET/PUT /api/empresa
-│   │   │   ├── setores.py              # CRUD /api/setores
-│   │   │   ├── colaboradores.py        # CRUD /api/colaboradores
-│   │   │   ├── tipos_contrato.py       # CRUD /api/tipos-contrato
-│   │   │   ├── demandas.py             # CRUD /api/setores/:id/demandas
-│   │   │   ├── excecoes.py             # CRUD /api/colaboradores/:id/excecoes
-│   │   │   ├── escalas.py              # gerar, ajustar, oficializar
-│   │   │   └── dashboard.py            # GET /api/dashboard/resumo
-│   │   └── schemas.py                  # Todos os Pydantic models
+│   ├── routes/
+│   │   ├── empresa.ts              # GET/PUT /api/empresa
+│   │   ├── setores.ts              # CRUD /api/setores + demandas + rank
+│   │   ├── colaboradores.ts        # CRUD /api/colaboradores
+│   │   ├── tipos-contrato.ts       # CRUD /api/tipos-contrato
+│   │   ├── excecoes.ts             # CRUD /api/colaboradores/:id/excecoes
+│   │   ├── escalas.ts              # gerar, ajustar, oficializar
+│   │   └── dashboard.ts            # GET /api/dashboard
 │   │
-│   ├── motor/                          # ← CORE
-│   │   ├── gerador.py                  # Gera escala (Fases 1-5)
-│   │   ├── validador.py                # Valida regras CLT (Fase 6)
-│   │   ├── pontuador.py                # Calcula score (Fase 7)
-│   │   └── constantes.py               # CLT_MAX_DIAS_CONSECUTIVOS, etc.
+│   ├── motor/                      # ← CORE (F5)
+│   │   ├── gerador.ts              # Gera escala (Fases 1-5)
+│   │   ├── validador.ts            # Valida regras CLT (Fase 6)
+│   │   └── pontuador.ts            # Calcula score (Fase 7)
 │   │
-│   ├── repositorios/
-│   │   ├── base.py                     # Conexao SQLite
-│   │   ├── setor_repo.py
-│   │   ├── colaborador_repo.py
-│   │   ├── tipo_contrato_repo.py
-│   │   ├── demanda_repo.py
-│   │   ├── excecao_repo.py
-│   │   ├── escala_repo.py
-│   │   └── empresa_repo.py
+│   ├── db/
+│   │   ├── connection.ts           # Singleton better-sqlite3
+│   │   ├── schema.ts               # DDL (CREATE TABLE)
+│   │   └── seed.ts                 # Popula tipos_contrato + empresa
 │   │
-│   ├── modelos/
-│   │   └── entidades.py                # Dataclasses ou SQLAlchemy models
-│   │
-│   └── app.py                          # FastAPI app + CORS + startup
+│   └── index.ts                    # Hono app + CORS + startup
 │
-├── data/
-│   └── escalaflow.db                   # SQLite (gerado no startup)
-│
-├── seed/
-│   └── seed.py                         # Popula tipos_contrato + empresa
-│
-├── migrations/
-│   └── 001_create_tables.sql           # DDL do banco
-│
-└── requirements.txt
+├── package.json
+└── tsconfig.json
+
+packages/shared/
+├── src/
+│   ├── types.ts                    # Todas as interfaces (Empresa, Setor, etc.)
+│   ├── constants.ts                # CLT constants, enums
+│   └── index.ts
+├── package.json
+└── tsconfig.json
 ```
 
 ### 9.3 DDL do banco
@@ -1624,35 +1612,35 @@ apps/backend/
 ```sql
 CREATE TABLE IF NOT EXISTS empresa (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
-    nome TEXT NOT NULL DEFAULT '',
-    corte_semanal TEXT NOT NULL DEFAULT 'SEG_DOM',
-    tolerancia_semanal_min INTEGER NOT NULL DEFAULT 30
+    nome TEXT NOT NULL,
+    cidade TEXT NOT NULL,
+    estado TEXT NOT NULL
 );
 
 CREATE TABLE IF NOT EXISTS tipos_contrato (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
-    nome TEXT NOT NULL UNIQUE,
+    nome TEXT NOT NULL,
     horas_semanais INTEGER NOT NULL,
     dias_trabalho INTEGER NOT NULL,
-    max_minutos_dia INTEGER NOT NULL,
-    trabalha_domingo INTEGER NOT NULL DEFAULT 1
+    trabalha_domingo INTEGER NOT NULL DEFAULT 1,
+    max_minutos_dia INTEGER NOT NULL DEFAULT 600
 );
 
 CREATE TABLE IF NOT EXISTS setores (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     nome TEXT NOT NULL,
-    hora_abertura TEXT NOT NULL,
-    hora_fechamento TEXT NOT NULL,
+    hora_abertura TEXT NOT NULL DEFAULT '08:00',
+    hora_fechamento TEXT NOT NULL DEFAULT '22:00',
     ativo INTEGER NOT NULL DEFAULT 1
 );
 
 CREATE TABLE IF NOT EXISTS demandas (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
-    setor_id INTEGER NOT NULL REFERENCES setores(id) ON DELETE CASCADE,
-    dia_semana TEXT,
+    setor_id INTEGER NOT NULL REFERENCES setores(id),
+    dia_semana TEXT CHECK (dia_semana IN ('SEG','TER','QUA','QUI','SEX','SAB','DOM') OR dia_semana IS NULL),
     hora_inicio TEXT NOT NULL,
     hora_fim TEXT NOT NULL,
-    min_pessoas INTEGER NOT NULL
+    min_pessoas INTEGER NOT NULL DEFAULT 1
 );
 
 CREATE TABLE IF NOT EXISTS colaboradores (
@@ -1673,8 +1661,8 @@ CREATE TABLE IF NOT EXISTS excecoes (
     colaborador_id INTEGER NOT NULL REFERENCES colaboradores(id) ON DELETE CASCADE,
     data_inicio TEXT NOT NULL,
     data_fim TEXT NOT NULL,
-    tipo TEXT NOT NULL CHECK (tipo IN ('FERIAS', 'ATESTADO', 'TROCA', 'BLOQUEIO')),
-    nota TEXT
+    tipo TEXT NOT NULL CHECK (tipo IN ('FERIAS', 'ATESTADO', 'BLOQUEIO')),
+    observacao TEXT
 );
 
 CREATE TABLE IF NOT EXISTS escalas (
@@ -1684,8 +1672,7 @@ CREATE TABLE IF NOT EXISTS escalas (
     data_fim TEXT NOT NULL,
     status TEXT NOT NULL DEFAULT 'RASCUNHO' CHECK (status IN ('RASCUNHO', 'OFICIAL', 'ARQUIVADA')),
     pontuacao INTEGER,
-    criada_em TEXT NOT NULL DEFAULT (datetime('now')),
-    oficializada_em TEXT
+    criada_em TEXT NOT NULL DEFAULT (datetime('now'))
 );
 
 CREATE TABLE IF NOT EXISTS alocacoes (
@@ -1693,7 +1680,7 @@ CREATE TABLE IF NOT EXISTS alocacoes (
     escala_id INTEGER NOT NULL REFERENCES escalas(id) ON DELETE CASCADE,
     colaborador_id INTEGER NOT NULL REFERENCES colaboradores(id),
     data TEXT NOT NULL,
-    status TEXT NOT NULL CHECK (status IN ('TRABALHO', 'FOLGA', 'AUSENCIA')),
+    status TEXT NOT NULL CHECK (status IN ('TRABALHO', 'FOLGA', 'INDISPONIVEL')),
     hora_inicio TEXT,
     hora_fim TEXT,
     minutos INTEGER
@@ -1727,18 +1714,16 @@ CREATE INDEX IF NOT EXISTS idx_alocacoes_colaborador ON alocacoes(colaborador_id
 
 ### 10.2 Sequencia de implementacao
 
-| Fase | O que | Depende de | Entrega |
-|------|-------|------------|---------|
-| **F1** | Setup projeto (monorepo, vite, fastapi, sqlite) | — | Repos rodando |
-| **F2** | DDL do banco + seed | F1 | Tabelas criadas, CLT seed |
-| **F3** | Backend CRUD: Empresa + TipoContrato + Setor | F2 | API basica |
-| **F4** | Backend CRUD: Colaborador + Excecao + Demanda | F3 | API completa |
-| **F5** | Motor de Proposta (gerador + validador + pontuador) | F4 | Escala gerada via API |
-| **F6** | Backend Escala: gerar + ajustar + oficializar | F5 | Core backend pronto |
-| **F7** | Frontend: AppShell + Sidebar + rotas | F1 | Navegacao funcional |
-| **F8** | Frontend: CRUD pages (Setor, Colaborador, Contrato) | F3, F7 | Cadastros funcionais |
-| **F9** | Frontend: EscalaPagina + EscalaGrid | F6, F8 | **CORE COMPLETO** |
-| **F10** | Frontend: Dashboard + ExportarEscala | F9 | Produto finalizado |
+| Fase | O que | Depende de | Status | Entrega |
+|------|-------|------------|--------|---------|
+| **F1** | Setup monorepo (npm workspaces, Hono, Vite, shared types) | — | FEITO | API + Web rodando |
+| **F2** | DDL do banco + seed CLT | F1 | FEITO | 8 tabelas + 4 contratos |
+| **F3** | Backend CRUD completo (todas as 20+ rotas) | F2 | FEITO | API funcional com validacoes |
+| **F4** | Frontend skeleton (AppShell, Dashboard, SetorLista, ContratoLista) | F1 | FEITO | Navegacao + CRUD basico |
+| **F5** | Motor de Proposta (gerador + validador + pontuador) | F3 | — | Escala gerada via API |
+| **F6** | Frontend: CRUD completo (SetorDetalhe, ColaboradorDetalhe, Demanda) | F3, F4 | — | Cadastros completos |
+| **F7** | Frontend: EscalaPagina + EscalaGrid | F5, F6 | — | **CORE COMPLETO** |
+| **F8** | Frontend: Dashboard enriquecido + ExportarEscala | F7 | — | Produto finalizado |
 
 ### 10.3 O que e critico
 
